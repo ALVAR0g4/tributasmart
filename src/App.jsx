@@ -115,7 +115,7 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
           {page === 'docs' && <Documentos usuario={usuario} />}
           {page === 'sim' && <Simulacion go={go} usuario={usuario} />}
           {page === 'rep' && <Reporte usuario={usuario} />}
-          {page === 'perf' && <Perfil go={go} />}
+          {page === 'perf' && <Perfil go={go} usuario={usuario} />}
         </main>
       </div>
     </div>
@@ -165,7 +165,7 @@ function Dashboard({go, datos}) {
 
   return (
     <div>
-      <PageHeader bc="Dashboard" title="Bienvenido, Juan Carlos 👋" sub="Resumen de tu proceso tributario — año gravable 2024" />
+      <PageHeader bc="Dashboard" title={`Bienvenido, ${usuario.nombre} 👋`} sub="Resumen de tu proceso tributario — año gravable 2024" />
       <Alert type="info" ico="🗓" text={<>Plazo para declarar renta 2024: hasta el <strong>21 de agosto de 2025</strong>. Te quedan aprox. 4 meses.</>} action="Comenzar →" onAction={() => go('diag')} />
       <Alert type="warn" ico="⚠" text={<>Tienes <strong>2 documentos pendientes</strong> de cargar para completar tu expediente.</>} action="Ver →" onAction={() => go('docs')} />
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14}}>
@@ -567,7 +567,7 @@ function Simulacion({ go, usuario }) {
 
 function Reporte({ usuario }) {
   const descargarPDF = () => {
-    window.open('http://localhost:3000/reporte/' + usuario.id + '/pdf', '_blank')
+    window.open('https://tributasmart-backend.onrender.com/reporte/' + usuario.id + '/pdf', '_blank')
   }
 
   return (
@@ -630,29 +630,49 @@ function Reporte({ usuario }) {
   )
 }
 
-function Perfil({go}) {
+function Perfil({ go, usuario }) {
+  const [form, setForm] = useState({
+    nombre: usuario.nombre || '',
+    cedula: usuario.cedula || '',
+    email: usuario.email || '',
+    telefono: usuario.telefono || '',
+  })
+  const [guardado, setGuardado] = useState(false)
+
+  const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const guardar = async () => {
+    try {
+      await api.put('/usuario/' + usuario.id, form)
+      setGuardado(true)
+      setTimeout(() => setGuardado(false), 3000)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   return (
     <div>
-      <PageHeader bc="Mi perfil" title="Mi perfil" sub="Configura tu información personal y de seguridad" />
+      <PageHeader bc="Mi perfil" title="Mi perfil" sub="Configura tu informacion personal y de seguridad" />
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
         <Card title="Datos personales" ico="👤">
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12}}>
             {[
-              {l:'Nombre completo',    v:'Juan Carlos Pérez'},
-              {l:'Número de cédula',   v:'1.050.123.456'},
-              {l:'Correo electrónico', v:'juan@ejemplo.com'},
-              {l:'Telefono',          v:'+57 315 000 0000'}, 
-              {l:'Telefono',           v:'+57 315 000 0000'},
+              {l:'Nombre completo',    n:'nombre'},
+              {l:'Numero de cedula',   n:'cedula'},
+              {l:'Correo electronico', n:'email'},
+              {l:'Telefono',           n:'telefono'},
             ].map((f,i) => (
               <div key={i}>
                 <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>{f.l}</label>
-                <input defaultValue={f.v} style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
+                <input name={f.n} value={form[f.n]} onChange={cambiar} style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
               </div>
             ))}
           </div>
-          <div style={{display:'flex', gap:8}}>
-            <button onClick={() => go('dash')} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>Guardar cambios</button>
-            <button style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>Cancelar</button>
+          <div style={{display:'flex', gap:8, alignItems:'center'}}>
+            <button onClick={guardar} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>Guardar cambios</button>
+            <button onClick={() => go('dash')} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>Cancelar</button>
+            {guardado && <span style={{fontSize:12, color:'#27500A', fontWeight:500}}>✅ Guardado correctamente</span>}
           </div>
         </Card>
         <div>
@@ -661,7 +681,7 @@ function Perfil({go}) {
               {['Contrasena actual','Nueva contrasena'].map((l,i) => (
                 <div key={i}>
                   <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>{l}</label>
-                  <input type="password" defaultValue={i===0?'12345678':''} placeholder={i===1?'Minimo 8 caracteres':''} style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
+                  <input type="password" placeholder={i===1?'Minimo 8 caracteres':''} style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
                 </div>
               ))}
             </div>
