@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import api from './api'
 import Login from './Login'
+import Contador from './Contador'
 
 export default function App() {
   const [page, setPage] = useState('dash')
@@ -25,10 +26,16 @@ export default function App() {
   const go = (id) => setPage(id)
 
   const onLogin = (u, token) => {
-    localStorage.setItem('usuario', JSON.stringify(u))
-    localStorage.setItem('token', token)
-    setUsuario(u)
-  }
+  localStorage.setItem('usuario', JSON.stringify(u))
+  localStorage.setItem('token', token)
+  setUsuario(u)
+}
+
+const onLoginContador = (c, token) => {
+  localStorage.setItem('contador', JSON.stringify(c))
+  localStorage.setItem('token', token)
+  setUsuario(c)
+}
 
   const onLogout = () => {
     localStorage.removeItem('usuario')
@@ -37,7 +44,8 @@ export default function App() {
     setPage('dash')
   }
 
-  if (!usuario) return <Login onLogin={onLogin} />
+if (!usuario) return <Login onLogin={onLogin} onLoginContador={onLoginContador} />
+if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={onLogout} />
 
 
   return (
@@ -97,10 +105,10 @@ export default function App() {
         {/* MAIN */}
         <main style={{flex:1, padding:16, overflowY:'auto', background:'#f9fafb'}}>
           {page === 'dash' && <Dashboard go={go} datos={datos} />}
-          {page === 'diag' && <Diagnostico />}
-          {page === 'reg'  && <Registro />}
+          {page === 'diag' && <Diagnostico usuario={usuario} />}
+          {page === 'reg' && <Registro usuario={usuario} />}
           {page === 'docs' && <Documentos />}
-          {page === 'sim'  && <Simulacion go={go} />}
+          {page === 'sim' && <Simulacion go={go} usuario={usuario} />}
           {page === 'rep'  && <Reporte />}
           {page === 'perf' && <Perfil go={go} />}
         </main>
@@ -220,45 +228,116 @@ function Dashboard({go, datos}) {
   )
 }
 
-function Diagnostico() {
+function Diagnostico({ usuario }) {
+  const [form, setForm] = useState({ ingresos: 68500000, patrimonio: 120000000, tarjeta: 0, compras: 0, consignaciones: 0, inversiones: 0 })
+  const [resultado, setResultado] = useState(null)
+  const [cargando, setCargando] = useState(false)
+
+  const cambiar = (e) => setForm({ ...form, [e.target.name]: Number(e.target.value) })
+
+  const calcular = async () => {
+    setCargando(true)
+    try {
+      const res = await api.post('/diagnostico/' + usuario.id, form)
+      setResultado(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+    setCargando(false)
+  }
+
   return (
     <div>
-      <PageHeader bc="Diagnóstico" title="Diagnóstico tributario" sub="Determina si estás obligado a declarar renta en Colombia 2024" />
+      <PageHeader bc="Diagnostico" title="Diagnostico tributario" sub="Determina si estas obligado a declarar renta en Colombia 2024" />
       <Card title="Cuestionario" ico="📋">
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:12}}>
-          {['Ingresos brutos anuales (COP)','Patrimonio bruto total (COP)','Consumos tarjeta de crédito','Compras y consumos totales','Consignaciones bancarias','Inversiones y ahorros'].map((l,i) => (
+          {[
+            {l:'Ingresos brutos anuales (COP)', n:'ingresos'},
+            {l:'Patrimonio bruto total (COP)',  n:'patrimonio'},
+            {l:'Consumos tarjeta de credito',   n:'tarjeta'},
+            {l:'Compras y consumos totales',    n:'compras'},
+            {l:'Consignaciones bancarias',      n:'consignaciones'},
+            {l:'Inversiones y ahorros',         n:'inversiones'},
+          ].map((f,i) => (
             <div key={i}>
-              <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>{l}</label>
-              <input defaultValue={i===0?'68.500.000':i===1?'120.000.000':''} placeholder="0"
+              <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>{f.l}</label>
+              <input name={f.n} value={form[f.n]} onChange={cambiar} type="number"
                 style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
             </div>
           ))}
         </div>
-        <button style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>🔍 Calcular diagnóstico</button>
+        <button onClick={calcular} disabled={cargando}
+          style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
+          {cargando ? 'Calculando...' : 'Calcular diagnostico'}
+        </button>
+
+        {resultado && (
+          <div style={{marginTop:16, padding:'12px 16px', borderRadius:8, background: resultado.debeDeclarar ? '#FCEBEB' : '#EAF3DE', border: `0.5px solid ${resultado.debeDeclarar ? '#F4A0A0' : '#C0DD97'}`}}>
+            <div style={{fontSize:14, fontWeight:500, color: resultado.debeDeclarar ? '#A32D2D' : '#27500A', marginBottom:4}}>
+              {resultado.debeDeclarar ? '⚠ Debes declarar renta 2024' : '✅ No estas obligado a declarar renta 2024'}
+            </div>
+            <div style={{fontSize:12, color:'#6b7280'}}>{resultado.mensaje}</div>
+          </div>
+        )}
       </Card>
     </div>
   )
 }
 
-function Registro() {
+function Registro({ usuario }) {
+  const [ingresos, setIngresos] = useState([
+    {d:'Salario mensual', f:'Ene-Dic 2024', v:62500000, s:'Verificado'},
+    {d:'Honorarios freelance', f:'Mar 2024', v:6000000, s:'Pendiente'},
+  ])
+  const [deducciones, setDeducciones] = useState([
+    {d:'Intereses hipotecarios', f:'2024', v:4200000},
+    {d:'Medicina prepagada', f:'2024', v:3600000},
+    {d:'Dependientes', f:'2024', v:4300000},
+  ])
+  const [guardado, setGuardado] = useState(false)
+
+  const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
+  const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
+  const retenciones = 3400000
+  const impuesto = Math.max(0, (totalIngresos - totalDeducciones * 0.25) * 0.19 - retenciones)
+
+  const guardar = async () => {
+    try {
+      await api.put('/tributario/' + usuario.id, {
+        ingresos: totalIngresos,
+        deducciones: totalDeducciones,
+        retenciones,
+        impuesto_estimado: impuesto
+      })
+      setGuardado(true)
+      setTimeout(() => setGuardado(false), 3000)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   return (
     <div>
       <PageHeader bc="Registro datos" title="Registro de datos" sub="Ingresa tus ingresos, deducciones y retenciones" />
-      <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2024 para un cálculo preciso." />
-      <Card title="Ingresos" ico="💰">
+      <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2024 para un calculo preciso." />
+      
+      <Card title="Ingresos" ico="💰" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
-            <tr>{['Descripción','Fecha','Valor','Estado'].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
+            <tr>{['Descripcion','Fecha','Valor','Estado'].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
           </thead>
           <tbody>
-            {[
-              {d:'Salario mensual',     f:'Ene–Dic 2024', v:'$62.500.000', s:'Verificado'},
-              {d:'Honorarios freelance',f:'Mar 2024',     v:'$6.000.000',  s:'Pendiente'},
-            ].map((r,i) => (
+            {ingresos.map((r,i) => (
               <tr key={i}>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
-                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', fontWeight:500, color:'#27500A'}}>{r.v}</td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input type="number" value={r.v} onChange={e => {
+                    const nueva = [...ingresos]
+                    nueva[i].v = Number(e.target.value)
+                    setIngresos(nueva)
+                  }} style={{width:120, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <span style={{background: r.s==='Verificado'?'#EAF3DE':'#FAEEDA', color: r.s==='Verificado'?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>{r.s}</span>
                 </td>
@@ -266,7 +345,43 @@ function Registro() {
             ))}
           </tbody>
         </table>
+        <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#0C447C', textAlign:'right'}}>
+          Total ingresos: ${totalIngresos.toLocaleString()}
+        </div>
       </Card>
+
+      <Card title="Deducciones" ico="✂" style={{marginBottom:12}}>
+        <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
+          <thead>
+            <tr>{['Descripcion','Periodo','Valor'].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {deducciones.map((r,i) => (
+              <tr key={i}>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input type="number" value={r.v} onChange={e => {
+                    const nueva = [...deducciones]
+                    nueva[i].v = Number(e.target.value)
+                    setDeducciones(nueva)
+                  }} style={{width:120, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#A32D2D', textAlign:'right'}}>
+          Total deducciones: ${totalDeducciones.toLocaleString()}
+        </div>
+      </Card>
+
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <button onClick={guardar} style={{padding:'8px 16px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
+          💾 Guardar datos
+        </button>
+        {guardado && <span style={{fontSize:12, color:'#27500A', fontWeight:500}}>✅ Datos guardados correctamente</span>}
+      </div>
     </div>
   )
 }
@@ -302,21 +417,38 @@ function Documentos() {
   )
 }
 
-function Simulacion({go}) {
+function Simulacion({ go, usuario }) {
+  const [datos, setDatos] = useState(null)
+
+  useEffect(() => {
+    api.get('/tributario/' + usuario.id)
+      .then(res => setDatos(res.data))
+      .catch(err => console.error(err))
+  }, [])
+
+  if (!datos) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando simulacion...</div>
+
+  const rentaExenta = datos.ingresos * 0.25
+  const rentaLiquida = datos.ingresos - rentaExenta - datos.deducciones
+  const impuestoTabla = Math.max(0, rentaLiquida * 0.19)
+  const impuestoNeto = Math.max(0, impuestoTabla - datos.retenciones)
+
+  const fmt = (n) => '$' + Math.round(n).toLocaleString()
+
   return (
     <div>
-      <PageHeader bc="Simulación" title="Simulación tributaria" sub="Estimación de tu impuesto de renta 2024" />
+      <PageHeader bc="Simulacion" title="Simulacion tributaria" sub="Estimacion de tu impuesto de renta 2024" />
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
-        <Card title="Detalle del cálculo" ico="🧮">
+        <Card title="Detalle del calculo" ico="🧮">
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
             <tbody>
               {[
-                {l:'Ingresos brutos',       v:'$68.500.000', c:''},
-                {l:'(-) Rentas exentas 25%',v:'-$13.550.000',c:'#A32D2D'},
-                {l:'(-) Deducciones',        v:'-$12.100.000',c:'#A32D2D'},
-                {l:'= Renta líquida',        v:'$42.850.000', c:'#0C447C'},
-                {l:'Impuesto según tabla',   v:'$8.220.000',  c:''},
-                {l:'(-) Retenciones',        v:'-$3.400.000', c:'#27500A'},
+                {l:'Ingresos brutos',        v:fmt(datos.ingresos),   c:''},
+                {l:'(-) Rentas exentas 25%', v:'-'+fmt(rentaExenta),  c:'#A32D2D'},
+                {l:'(-) Deducciones',        v:'-'+fmt(datos.deducciones), c:'#A32D2D'},
+                {l:'= Renta liquida',        v:fmt(rentaLiquida),     c:'#0C447C'},
+                {l:'Impuesto segun tabla',   v:fmt(impuestoTabla),    c:''},
+                {l:'(-) Retenciones',        v:'-'+fmt(datos.retenciones), c:'#27500A'},
               ].map((r,i) => (
                 <tr key={i}>
                   <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.l}</td>
@@ -327,17 +459,17 @@ function Simulacion({go}) {
           </table>
           <div style={{background:'#185FA5', borderRadius:8, padding:'10px 12px', display:'flex', justifyContent:'space-between', marginTop:10}}>
             <span style={{color:'rgba(255,255,255,0.8)', fontSize:12}}>Impuesto neto estimado</span>
-            <span style={{color:'#fff', fontSize:15, fontWeight:500}}>$4.820.000</span>
+            <span style={{color:'#fff', fontSize:15, fontWeight:500}}>{fmt(impuestoNeto)}</span>
           </div>
           <button onClick={() => go('rep')} style={{width:'100%', marginTop:10, padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>Generar reporte →</button>
         </Card>
         <div>
-          <Alert type="info" ico="💡" text={<>Si cargas el certificado hipotecario pendiente, podrías reducir tu impuesto en aprox. <strong>$420.000</strong>.</>} />
+          <Alert type="info" ico="💡" text="Si registras mas deducciones podrias reducir tu impuesto estimado." />
           <Card title="Escenarios" ico="📊">
             {[
-              {tag:'Optimista',   val:'$4.400.000', c:'#27500A', bg:'#EAF3DE'},
-              {tag:'Base',        val:'$4.820.000', c:'#0C447C', bg:'#E6F1FB'},
-              {tag:'Conservador', val:'$5.100.000', c:'#633806', bg:'#FAEEDA'},
+              {tag:'Optimista',   val:fmt(impuestoNeto * 0.9), c:'#27500A', bg:'#EAF3DE'},
+              {tag:'Base',        val:fmt(impuestoNeto),        c:'#0C447C', bg:'#E6F1FB'},
+              {tag:'Conservador', val:fmt(impuestoNeto * 1.1),  c:'#633806', bg:'#FAEEDA'},
             ].map((e,i) => (
               <div key={i} style={{background:e.bg, borderRadius:8, padding:10, textAlign:'center', marginBottom:8}}>
                 <div style={{fontSize:10, fontWeight:500, color:e.c, marginBottom:3}}>{e.tag}</div>
