@@ -3,7 +3,7 @@ import api from './api'
 
 export default function Login({ onLogin, onLoginContador }) {
   const [modo, setModo] = useState('login')
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '', tipo: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '', tipo: '', matricula: '' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
@@ -16,6 +16,10 @@ export default function Login({ onLogin, onLoginContador }) {
       if (modo === 'contador') {
         const res = await api.post('/contador/login', { email: form.email, password: form.password })
         onLoginContador(res.data.contador, res.data.token)
+      } else if (modo === 'registro-contador') {
+        await api.post('/contador/registro', form)
+        setModo('contador')
+        setError('Cuenta de contador creada. Ahora inicia sesion.')
       } else if (modo === 'login') {
         const res = await api.post('/auth/login', { email: form.email, password: form.password })
         onLogin(res.data.usuario, res.data.token)
@@ -41,13 +45,13 @@ export default function Login({ onLogin, onLoginContador }) {
         </div>
 
         <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 4, textAlign: 'center' }}>
-          {modo === 'login' ? 'Iniciar sesion' : modo === 'registro' ? 'Crear cuenta' : 'Portal Contador'}
+          {modo === 'login' ? 'Iniciar sesion' : modo === 'registro' ? 'Crear cuenta' : modo === 'contador' ? 'Portal Contador' : 'Registro Contador'}
         </div>
         <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 20, textAlign: 'center' }}>
-          {modo === 'login' ? 'Ingresa tus datos para continuar' : modo === 'registro' ? 'Completa el formulario para registrarte' : 'Acceso exclusivo para contadores'}
+          {modo === 'login' ? 'Ingresa tus datos para continuar' : modo === 'registro' ? 'Completa el formulario para registrarte' : modo === 'contador' ? 'Acceso exclusivo para contadores' : 'Crea tu cuenta como contador certificado'}
         </div>
 
-       {/* Campos registro */}
+        {/* Campos registro cliente */}
         {modo === 'registro' && (
           <>
             <div style={{ marginBottom: 10 }}>
@@ -79,6 +83,23 @@ export default function Login({ onLogin, onLoginContador }) {
           </>
         )}
 
+        {/* Campos registro contador */}
+        {modo === 'registro-contador' && (
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Nombre completo</label>
+              <input name="nombre" value={form.nombre} onChange={cambiar} placeholder="Carlos Gomez CPC"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #e5e7eb', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Matricula profesional</label>
+              <input name="matricula" value={form.matricula} onChange={cambiar} placeholder="12345-T"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #e5e7eb', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          </>
+        )}
+
+        {/* Email y password siempre visibles */}
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Correo electronico</label>
           <input name="email" value={form.email} onChange={cambiar} placeholder="juan@ejemplo.com"
@@ -101,7 +122,7 @@ export default function Login({ onLogin, onLoginContador }) {
         {/* Boton */}
         <button onClick={enviar} disabled={cargando}
           style={{ width: '100%', padding: '10px 14px', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer', background: '#185FA5', color: '#fff', border: 'none', marginBottom: 12 }}>
-          {cargando ? 'Cargando...' : modo === 'login' ? 'Iniciar sesion' : modo === 'registro' ? 'Crear cuenta' : 'Ingresar como contador'}
+          {cargando ? 'Cargando...' : modo === 'login' ? 'Iniciar sesion' : modo === 'registro' ? 'Crear cuenta' : modo === 'contador' ? 'Ingresar como contador' : 'Registrarme como contador'}
         </button>
 
         {/* Cambiar modo */}
@@ -110,12 +131,16 @@ export default function Login({ onLogin, onLoginContador }) {
             <>No tienes cuenta? <span onClick={() => setModo('registro')} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>Registrate</span></>
           ) : modo === 'registro' ? (
             <>Ya tienes cuenta? <span onClick={() => setModo('login')} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>Inicia sesion</span></>
-          ) : null}
+          ) : modo === 'contador' ? (
+            <>No tienes cuenta? <span onClick={() => setModo('registro-contador')} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>Registrate como contador</span></>
+          ) : (
+            <>Ya tienes cuenta? <span onClick={() => setModo('contador')} style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>Inicia sesion</span></>
+          )}
         </div>
         <div style={{ textAlign: 'center', fontSize: 12 }}>
-          <span onClick={() => setModo(modo === 'contador' ? 'login' : 'contador')}
+          <span onClick={() => setModo(modo === 'contador' || modo === 'registro-contador' ? 'login' : 'contador')}
             style={{ color: '#185FA5', cursor: 'pointer', fontWeight: 500 }}>
-            {modo === 'contador' ? '← Volver al login de cliente' : '¿Eres contador? Ingresa aqui'}
+            {modo === 'contador' || modo === 'registro-contador' ? '← Volver al login de cliente' : '¿Eres contador? Ingresa aqui'}
           </span>
         </div>
       </div>
