@@ -4,7 +4,32 @@ import api from './api'
 export default function Contador({ contador, onLogout }) {
   const [clientes, setClientes] = useState([])
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
+  const [notificaciones, setNotificaciones] = useState([])
+  const [verNotifs, setVerNotifs] = useState(false)
 
+  useEffect(() => {
+    cargarNotificaciones()
+    const interval = setInterval(cargarNotificaciones, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const cargarNotificaciones = async () => {
+    try {
+      const res = await api.get('/contador/' + contador.id + '/notificaciones')
+      setNotificaciones(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const marcarLeida = async (id) => {
+    try {
+      await api.put('/notificaciones/' + id + '/leer')
+      cargarNotificaciones()
+    } catch (err) {
+      console.error(err)
+    }
+}
   useEffect(() => {
     api.get('/contador/' + contador.id + '/clientes')
       .then(res => setClientes(res.data))
@@ -24,6 +49,31 @@ export default function Contador({ contador, onLogout }) {
           <span style={{background:'#E6F1FB', color:'#0C447C', fontSize:10, fontWeight:500, padding:'2px 6px', borderRadius:4}}>Portal Contador</span>
         </div>
         <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:10}}>
+          <div style={{position:'relative'}}>
+            <span onClick={() => setVerNotifs(!verNotifs)} style={{fontSize:18, cursor:'pointer'}}>🔔</span>
+            {notificaciones.filter(n => !n.leida).length > 0 && (
+              <span style={{position:'absolute', top:-4, right:-4, background:'#A32D2D', color:'#fff', fontSize:9, fontWeight:500, padding:'1px 4px', borderRadius:10}}>
+                {notificaciones.filter(n => !n.leida).length}
+              </span>
+            )}
+            {verNotifs && (
+              <div style={{position:'absolute', right:0, top:30, width:300, background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:10, boxShadow:'0 4px 12px rgba(0,0,0,0.1)', zIndex:100}}>
+                <div style={{padding:'10px 14px', borderBottom:'0.5px solid #e5e7eb', fontSize:12, fontWeight:500}}>Notificaciones</div>
+                {notificaciones.length === 0 && (
+                  <div style={{padding:'12px 14px', fontSize:12, color:'#9ca3af'}}>No tienes notificaciones</div>
+                )}
+                {notificaciones.map((n,i) => (
+                  <div key={i} style={{padding:'10px 14px', borderBottom:'0.5px solid #f3f4f6', background: n.leida?'#fff':'#E6F1FB'}}>
+                    <div style={{fontSize:12, marginBottom:4}}>{n.mensaje}</div>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                      <span style={{fontSize:10, color:'#9ca3af'}}>{new Date(n.created_at).toLocaleDateString('es-CO')}</span>
+                      {!n.leida && <span onClick={() => marcarLeida(n.id)} style={{fontSize:10, color:'#185FA5', cursor:'pointer', fontWeight:500}}>Marcar leida</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div style={{fontSize:12, color:'#6b7280'}}>
             <span style={{fontWeight:500, color:'#111'}}>{contador.nombre}</span> · Mat. {contador.matricula}
           </div>

@@ -570,6 +570,20 @@ function Reporte({ usuario }) {
     window.open('https://tributasmart-backend.onrender.com/reporte/' + usuario.id + '/pdf', '_blank')
   }
 
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+
+  const enviarContador = async () => {
+    setEnviando(true)
+    try {
+      await api.post('/reporte/' + usuario.id + '/enviar')
+      setEnviado(true)
+      setTimeout(() => setEnviado(false), 3000)
+    } catch (err) {
+      console.error(err)
+    }
+    setEnviando(false)
+  }
   return (
     <div>
       <PageHeader bc="Reporte final" title="Reporte para tu contador" sub="Resumen consolidado listo para compartir con tu profesional contable" />
@@ -613,8 +627,9 @@ function Reporte({ usuario }) {
             <button onClick={descargarPDF} style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#639922', color:'#fff', border:'none'}}>
               📥 Descargar PDF
             </button>
-            <button style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#185FA5', color:'#fff', border:'none'}}>
-              📧 Enviar al contador
+           <button onClick={enviarContador} disabled={enviando}
+              style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#185FA5', color:'#fff', border:'none'}}>
+              {enviando ? 'Enviando...' : enviado ? '✅ Enviado al contador' : '📧 Enviar al contador'}
             </button>
             <button style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>
               🔗 Enlace seguro
