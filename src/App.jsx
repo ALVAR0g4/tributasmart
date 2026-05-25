@@ -112,9 +112,9 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
           {page === 'dash' && <Dashboard go={go} datos={datos} />}
           {page === 'diag' && <Diagnostico usuario={usuario} />}
           {page === 'reg' && <Registro usuario={usuario} />}
-          {page === 'docs' && <Documentos />}
+          {page === 'docs' && <Documentos usuario={usuario} />}
           {page === 'sim' && <Simulacion go={go} usuario={usuario} />}
-          {page === 'rep'  && <Reporte />}
+          {page === 'rep' && <Reporte usuario={usuario} />}
           {page === 'perf' && <Perfil go={go} />}
         </main>
       </div>
@@ -391,32 +391,109 @@ function Registro({ usuario }) {
   )
 }
 
-function Documentos() {
+function Documentos({ usuario }) {
+  const [docs, setDocs] = useState([])
+  const [subiendo, setSubiendo] = useState(false)
+  const [mensaje, setMensaje] = useState('')
+
+  useEffect(() => {
+    cargarDocs()
+  }, [])
+
+  const cargarDocs = async () => {
+    try {
+      const res = await api.get('/documentos/' + usuario.id)
+      setDocs(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const subir = async (e) => {
+    const archivo = e.target.files[0]
+    if (!archivo) return
+    setSubiendo(true)
+    const formData = new FormData()
+    formData.append('archivo', archivo)
+    formData.append('nombre', archivo.name)
+    formData.append('tipo', 'documento')
+    try {
+      await api.post('/documentos/' + usuario.id + '/subir', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      setMensaje('Documento subido correctamente')
+      cargarDocs()
+      setTimeout(() => setMensaje(''), 3000)
+    } catch (err) {
+      setMensaje('Error al subir el documento')
+    }
+    setSubiendo(false)
+  }
+
+  const docsRequeridos = [
+    {ico:'📄', name:'Certificado de ingresos y retenciones', meta:'Emitido por empleador · PDF'},
+    {ico:'🏦', name:'Certificado bancario', meta:'Extractos del año · PDF'},
+    {ico:'🏠', name:'Certificado hipotecario', meta:'Intereses pagados 2024'},
+    {ico:'🏥', name:'Medicina prepagada', meta:'Pagos del año'},
+  ]
+
   return (
     <div>
-      <PageHeader bc="Documentos" title="Documentos" sub="Carga los soportes necesarios para tu declaración" />
-      <Alert type="warn" ico="⚠" text="Tienes 2 documentos pendientes de cargar." />
-      <Card title="Documentos requeridos" ico="📁">
-        {[
-          {ico:'📄', name:'Certificado de ingresos y retenciones', meta:'Emitido por empleador · PDF', ok:true},
-          {ico:'🏦', name:'Certificado bancario', meta:'Extractos del año · PDF', ok:true},
-          {ico:'🏠', name:'Certificado hipotecario', meta:'Intereses pagados 2024 · Pendiente', ok:false},
-          {ico:'🏥', name:'Medicina prepagada', meta:'Pagos del año · Pendiente', ok:false},
-        ].map((d,i) => (
-          <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background:'#f9fafb', borderRadius:6, marginBottom:6, border:'0.5px solid #e5e7eb'}}>
-            <div style={{width:30, height:30, borderRadius:6, background: d.ok?'#EAF3DE':'#FAEEDA', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14}}>{d.ico}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:12, fontWeight:500}}>{d.name}</div>
-              <div style={{fontSize:10, color:'#9ca3af'}}>{d.meta}</div>
+      <PageHeader bc="Documentos" title="Documentos" sub="Carga los soportes necesarios para tu declaracion" />
+      {docs.length < docsRequeridos.length && (
+        <Alert type="warn" ico="⚠" text={`Tienes ${docsRequeridos.length - docs.length} documentos pendientes de cargar.`} />
+      )}
+      {docs.length >= docsRequeridos.length && (
+        <Alert type="ok" ico="✅" text="Todos los documentos han sido cargados correctamente." />
+      )}
+
+      <Card title="Documentos requeridos" ico="📁" style={{marginBottom:12}}>
+        {docsRequeridos.map((d,i) => {
+          const cargado = docs[i]
+          return (
+            <div key={i} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background:'#f9fafb', borderRadius:6, marginBottom:6, border:'0.5px solid #e5e7eb'}}>
+              <div style={{width:30, height:30, borderRadius:6, background: cargado?'#EAF3DE':'#FAEEDA', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14}}>{d.ico}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12, fontWeight:500}}>{d.name}</div>
+                <div style={{fontSize:10, color:'#9ca3af'}}>{cargado ? cargado.nombre : d.meta}</div>
+              </div>
+              <span style={{background: cargado?'#EAF3DE':'#FAEEDA', color: cargado?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>
+                {cargado ? 'Cargado' : 'Pendiente'}
+              </span>
             </div>
-            <span style={{background: d.ok?'#EAF3DE':'#FAEEDA', color: d.ok?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>{d.ok?'Cargado':'Pendiente'}</span>
-          </div>
-        ))}
-        <div style={{border:'1.5px dashed #d1d5db', borderRadius:8, padding:24, textAlign:'center', cursor:'pointer', background:'#f9fafb', marginTop:8}}>
+          )
+        })}
+      </Card>
+
+      <Card title="Subir documento" ico="📎">
+        <div style={{border:'1.5px dashed #d1d5db', borderRadius:8, padding:24, textAlign:'center', background:'#f9fafb', marginBottom:10}}>
           <div style={{fontSize:24, marginBottom:6}}>📎</div>
-          <div style={{fontSize:12, fontWeight:500}}>Arrastra o haz clic para cargar</div>
-          <div style={{fontSize:11, color:'#9ca3af'}}>PDF, JPG, PNG · máx. 10MB</div>
+          <div style={{fontSize:12, fontWeight:500, marginBottom:4}}>Arrastra o haz clic para cargar</div>
+          <div style={{fontSize:11, color:'#9ca3af', marginBottom:12}}>PDF, JPG, PNG · max. 10MB</div>
+          <label style={{padding:'8px 16px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
+            {subiendo ? 'Subiendo...' : 'Seleccionar archivo'}
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={subir} style={{display:'none'}} />
+          </label>
         </div>
+        {mensaje && (
+          <div style={{background:'#EAF3DE', border:'0.5px solid #C0DD97', borderRadius:6, padding:'8px 12px', fontSize:12, color:'#27500A'}}>
+            ✅ {mensaje}
+          </div>
+        )}
+
+        {docs.length > 0 && (
+          <div style={{marginTop:12}}>
+            <div style={{fontSize:12, fontWeight:500, marginBottom:8}}>Documentos subidos ({docs.length})</div>
+            {docs.map((d,i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 10px', background:'#f9fafb', borderRadius:6, marginBottom:4, border:'0.5px solid #e5e7eb', fontSize:12}}>
+                <span>📄</span>
+                <span style={{flex:1}}>{d.nombre}</span>
+                <span style={{fontSize:10, color:'#9ca3af'}}>{new Date(d.created_at).toLocaleDateString('es-CO')}</span>
+                <span style={{background:'#EAF3DE', color:'#27500A', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>Cargado</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   )
@@ -488,12 +565,16 @@ function Simulacion({ go, usuario }) {
   )
 }
 
-function Reporte() {
+function Reporte({ usuario }) {
+  const descargarPDF = () => {
+    window.open('http://localhost:3000/reporte/' + usuario.id + '/pdf', '_blank')
+  }
+
   return (
     <div>
       <PageHeader bc="Reporte final" title="Reporte para tu contador" sub="Resumen consolidado listo para compartir con tu profesional contable" />
       <div style={{display:'flex', alignItems:'center', gap:8, background:'#EAF3DE', borderRadius:6, padding:'8px 12px', marginBottom:10}}>
-        <span style={{fontSize:11, color:'#27500A', fontWeight:500}}>🔒 Información verificada y protegida · TributaSmart no reemplaza el trabajo de tu contador</span>
+        <span style={{fontSize:11, color:'#27500A', fontWeight:500}}>🔒 Informacion verificada y protegida · TributaSmart no reemplaza el trabajo de tu contador</span>
       </div>
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
         <Card>
@@ -502,7 +583,7 @@ function Reporte() {
               <div style={{width:36, height:36, borderRadius:8, background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18}}>⚖</div>
               <div>
                 <div style={{fontSize:14, fontWeight:500}}>TributaSmart — Resumen Tributario 2024</div>
-                <div style={{fontSize:11, color:'#9ca3af'}}>Generado el 12 de abril de 2025 · Confidencial</div>
+                <div style={{fontSize:11, color:'#9ca3af'}}>Generado el {new Date().toLocaleDateString('es-CO')} · Confidencial</div>
               </div>
             </div>
             <span style={{background:'#E6F1FB', color:'#0C447C', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>Vista previa</span>
@@ -529,17 +610,19 @@ function Reporte() {
         </Card>
         <div>
           <Card title="Exportar y compartir" ico="⬇" style={{marginBottom:10}}>
-            {[
-              {ico:'📥', label:'Descargar PDF',     style:{background:'#639922', color:'#fff', border:'none'}},
-              {ico:'📧', label:'Enviar al contador', style:{background:'#185FA5', color:'#fff', border:'none'}},
-              {ico:'🔗', label:'Enlace seguro',      style:{background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}},
-            ].map((b,i) => (
-              <button key={i} style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, ...b.style}}>{b.ico} {b.label}</button>
-            ))}
+            <button onClick={descargarPDF} style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#639922', color:'#fff', border:'none'}}>
+              📥 Descargar PDF
+            </button>
+            <button style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#185FA5', color:'#fff', border:'none'}}>
+              📧 Enviar al contador
+            </button>
+            <button style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>
+              🔗 Enlace seguro
+            </button>
           </Card>
           <Card title="Notas para el contador" ico="📌">
             <textarea placeholder="Agrega notas adicionales..." style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, resize:'vertical', minHeight:80, outline:'none', boxSizing:'border-box'}}></textarea>
-            <Alert type="info" ico="ℹ" text="TributaSmart organiza tu información. La revisión y firma legal corresponde a tu contador certificado." />
+            <Alert type="info" ico="ℹ" text="TributaSmart organiza tu informacion. La revision y firma legal corresponde a tu contador certificado." />
           </Card>
         </div>
       </div>
