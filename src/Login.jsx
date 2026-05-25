@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import api from './api'
 
 export default function Login({ onLogin, onLoginContador }) {
   const [modo, setModo] = useState('login')
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '', tipo: '', matricula: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '', tipo: '', matricula: '', contador_id: '' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [contadores, setContadores] = useState([])
+
+  useEffect(() => {
+    api.get('/contadores').then(res => setContadores(res.data)).catch(console.error)
+  }, [])
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -80,6 +85,16 @@ export default function Login({ onLogin, onLoginContador }) {
                 <option value="pensionado">🏖 Pensionado</option>
               </select>
             </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Selecciona tu contador</label>
+              <select name="contador_id" value={form.contador_id} onChange={cambiar}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #e5e7eb', fontSize: 12, outline: 'none', boxSizing: 'border-box', background: '#fff' }}>
+                <option value="">Selecciona un contador</option>
+                {contadores.map(c => (
+                  <option key={c.id} value={c.id}>{c.nombre} · Mat. {c.matricula}</option>
+                ))}
+              </select>
+            </div>
           </>
         )}
 
@@ -99,7 +114,7 @@ export default function Login({ onLogin, onLoginContador }) {
           </>
         )}
 
-        {/* Email y password siempre visibles */}
+        {/* Email y password */}
         <div style={{ marginBottom: 10 }}>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Correo electronico</label>
           <input name="email" value={form.email} onChange={cambiar} placeholder="juan@ejemplo.com"
