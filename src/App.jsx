@@ -96,7 +96,12 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
             </div>
             <div style={{flex:1}}>
               <div style={{fontSize:11, fontWeight:500}}>{usuario.nombre}</div>
-              <div style={{fontSize:10, color:'#9ca3af'}}>{usuario.email}</div>
+              <div style={{fontSize:10, color:'#9ca3af'}}>
+              {usuario.tipo === 'empleado' ? '👔 Empleado' : 
+              usuario.tipo === 'independiente' ? '💼 Independiente' : 
+              usuario.tipo === 'emprendedor' ? '🚀 Emprendedor' : 
+              usuario.tipo === 'pensionado' ? '🏖 Pensionado' : '👤 Usuario'}
+            </div>
             </div>
             <span onClick={onLogout} style={{fontSize:10, color:'#A32D2D', cursor:'pointer', fontWeight:500}}>Salir</span>
           </div>

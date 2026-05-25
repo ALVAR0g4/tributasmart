@@ -3,7 +3,7 @@ import api from './api'
 
 export default function Login({ onLogin, onLoginContador }) {
   const [modo, setModo] = useState('login')
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '' })
+  const [form, setForm] = useState({ nombre: '', email: '', password: '', cedula: '', telefono: '', tipo: '' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
@@ -47,7 +47,7 @@ export default function Login({ onLogin, onLoginContador }) {
           {modo === 'login' ? 'Ingresa tus datos para continuar' : modo === 'registro' ? 'Completa el formulario para registrarte' : 'Acceso exclusivo para contadores'}
         </div>
 
-        {/* Campos registro */}
+       {/* Campos registro */}
         {modo === 'registro' && (
           <>
             <div style={{ marginBottom: 10 }}>
@@ -64,6 +64,17 @@ export default function Login({ onLogin, onLoginContador }) {
               <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Telefono</label>
               <input name="telefono" value={form.telefono} onChange={cambiar} placeholder="+57 315 000 0000"
                 style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #e5e7eb', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>Tipo de usuario</label>
+              <select name="tipo" value={form.tipo} onChange={cambiar}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #e5e7eb', fontSize: 12, outline: 'none', boxSizing: 'border-box', background: '#fff' }}>
+                <option value="">Selecciona tu tipo</option>
+                <option value="empleado">👔 Empleado</option>
+                <option value="independiente">💼 Independiente</option>
+                <option value="emprendedor">🚀 Emprendedor</option>
+                <option value="pensionado">🏖 Pensionado</option>
+              </select>
             </div>
           </>
         )}
