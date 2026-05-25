@@ -109,7 +109,7 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
 
         {/* MAIN */}
         <main style={{flex:1, padding:16, overflowY:'auto', background:'#f9fafb'}}>
-          {page === 'dash' && <Dashboard go={go} datos={datos} />}
+          {page === 'dash' && <Dashboard go={go} datos={datos} usuario={usuario} />}
           {page === 'diag' && <Diagnostico usuario={usuario} />}
           {page === 'reg' && <Registro usuario={usuario} />}
           {page === 'docs' && <Documentos usuario={usuario} />}
@@ -157,7 +157,7 @@ function Card({title, ico, children, style={}}) {
   )
 }
 
-function Dashboard({go, datos}) {
+function Dashboard({go, datos, usuario}) {
   const ingresos = datos ? `$${(datos.ingresos/1000000).toFixed(1)}M` : '$68.5M'
   const deducciones = datos ? `$${(datos.deducciones/1000000).toFixed(1)}M` : '$12.1M'
   const retenciones = datos ? `$${(datos.retenciones/1000000).toFixed(1)}M` : '$3.4M'
