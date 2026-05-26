@@ -234,7 +234,7 @@ function Dashboard({go, datos, usuario}) {
 }
 
 function Diagnostico({ usuario }) {
-  const [form, setForm] = useState({ ingresos: 68500000, patrimonio: 120000000, tarjeta: 0, compras: 0, consignaciones: 0, inversiones: 0 })
+  const [form, setForm] = useState({ ingresos: 0, patrimonio: 0, tarjeta: 0, compras: 0, consignaciones: 0, inversiones: 0 })
   const [resultado, setResultado] = useState(null)
   const [cargando, setCargando] = useState(false)
 
@@ -251,9 +251,22 @@ function Diagnostico({ usuario }) {
     setCargando(false)
   }
 
+  const tipoLabel = {
+    empleado: '👔 Empleado',
+    independiente: '💼 Independiente',
+    emprendedor: '🚀 Emprendedor',
+    pensionado: '🏖 Pensionado'
+  }
+
   return (
     <div>
-      <PageHeader bc="Diagnostico" title="Diagnostico tributario" sub="Determina si estas obligado a declarar renta en Colombia 2024" />
+      <PageHeader bc="Diagnostico" title="Diagnostico tributario" sub="Determina si estas obligado a declarar renta en Colombia 2026" />
+      
+      <div style={{display:'flex', alignItems:'center', gap:8, background:'#E6F1FB', borderRadius:6, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#0C447C'}}>
+        <span>👤</span>
+        <span>Tipo de contribuyente: <strong>{tipoLabel[usuario.tipo] || '👤 Usuario'}</strong></span>
+      </div>
+
       <Card title="Cuestionario" ico="📋">
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:12}}>
           {[
@@ -277,11 +290,28 @@ function Diagnostico({ usuario }) {
         </button>
 
         {resultado && (
-          <div style={{marginTop:16, padding:'12px 16px', borderRadius:8, background: resultado.debeDeclarar ? '#FCEBEB' : '#EAF3DE', border: `0.5px solid ${resultado.debeDeclarar ? '#F4A0A0' : '#C0DD97'}`}}>
-            <div style={{fontSize:14, fontWeight:500, color: resultado.debeDeclarar ? '#A32D2D' : '#27500A', marginBottom:4}}>
-              {resultado.debeDeclarar ? '⚠ Debes declarar renta 2024' : '✅ No estas obligado a declarar renta 2024'}
+          <div style={{marginTop:16}}>
+            <div style={{padding:'12px 16px', borderRadius:8, background: resultado.debeDeclarar ? '#FCEBEB' : '#EAF3DE', border: `0.5px solid ${resultado.debeDeclarar ? '#F4A0A0' : '#C0DD97'}`, marginBottom:10}}>
+              <div style={{fontSize:14, fontWeight:500, color: resultado.debeDeclarar ? '#A32D2D' : '#27500A', marginBottom:8}}>
+                {resultado.debeDeclarar ? '⚠ Debes declarar renta 2026' : '✅ No estas obligado a declarar renta 2026'}
+              </div>
+              {resultado.razones.length > 0 && (
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>RAZONES:</div>
+                  {resultado.razones.map((r,i) => (
+                    <div key={i} style={{fontSize:12, marginBottom:2}}>• {r}</div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={{fontSize:12, color:'#6b7280'}}>{resultado.mensaje}</div>
+            {resultado.recomendaciones.length > 0 && (
+              <div style={{padding:'12px 16px', borderRadius:8, background:'#E6F1FB', border:'0.5px solid #B5D4F4'}}>
+                <div style={{fontSize:11, fontWeight:500, color:'#0C447C', marginBottom:8}}>💡 RECOMENDACIONES PARA TU CASO:</div>
+                {resultado.recomendaciones.map((r,i) => (
+                  <div key={i} style={{fontSize:12, color:'#0C447C', marginBottom:4}}>• {r}</div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </Card>
