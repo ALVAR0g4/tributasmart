@@ -358,21 +358,29 @@ function Registro({ usuario }) {
   const [guardado, setGuardado] = useState(false)
   const [cargando, setCargando] = useState(true)
 
-  useEffect(() => {
-    api.get('/tributario/' + usuario.id).then(res => {
-      const d = res.data
+useEffect(() => {
+  api.get('/tributario/' + usuario.id).then(res => {
+    const d = res.data
+    if (d.ingresos > 0) {
       setIngresos([
-        {d:'Salario mensual',      f:'Ene-Dic 2025', v: d.ingresos * 0.9 || 0,  s:'Verificado'},
-        {d:'Honorarios freelance', f:'2025',          v: d.ingresos * 0.1 || 0,  s:'Pendiente'},
+        {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
+        {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
       ])
+    } else {
+      setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
+    }
+    if (d.deducciones > 0) {
       setDeducciones([
-        {d:'Intereses hipotecarios', f:'2025', v: d.deducciones * 0.35 || 0},
-        {d:'Medicina prepagada',     f:'2025', v: d.deducciones * 0.30 || 0},
-        {d:'Dependientes',           f:'2025', v: d.deducciones * 0.35 || 0},
+        {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
+        {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
+        {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
       ])
-      setCargando(false)
-    }).catch(err => { console.error(err); setCargando(false) })
-  }, [])
+    } else {
+      setDeducciones([{d:'', f:'', v:0}])
+    }
+    setCargando(false)
+  }).catch(err => { console.error(err); setCargando(false) })
+}, [])
 
   const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
   const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
