@@ -158,16 +158,48 @@ function Card({title, ico, children, style={}}) {
 }
 
 function Dashboard({go, datos, usuario}) {
-  const ingresos = datos ? `$${(datos.ingresos/1000000).toFixed(1)}M` : '$68.5M'
-  const deducciones = datos ? `$${(datos.deducciones/1000000).toFixed(1)}M` : '$12.1M'
-  const retenciones = datos ? `$${(datos.retenciones/1000000).toFixed(1)}M` : '$3.4M'
-  const impuesto = datos ? `$${(datos.impuesto_estimado/1000000).toFixed(2)}M` : '$4.82M'
+  const ingresos = datos ? `$${(datos.ingresos/1000000).toFixed(1)}M` : '$0'
+  const deducciones = datos ? `$${(datos.deducciones/1000000).toFixed(1)}M` : '$0'
+  const retenciones = datos ? `$${(datos.retenciones/1000000).toFixed(1)}M` : '$0'
+  const impuesto = datos ? `$${(datos.impuesto_estimado/1000000).toFixed(2)}M` : '$0'
+
+  // Calcular progreso dinamicamente
+  const pasos = [
+    { label:'Registro',     completado: true },
+    { label:'Diagnostico',  completado: datos?.ingresos > 0 },
+    { label:'Datos',        completado: datos?.ingresos > 0 && datos?.deducciones > 0 },
+    { label:'Documentos',   completado: false },
+    { label:'Simulacion',   completado: datos?.impuesto_estimado > 0 },
+    { label:'Reporte',      completado: false },
+  ]
+  const completados = pasos.filter(p => p.completado).length
+  const porcentaje = Math.round((completados / pasos.length) * 100)
+
+  // Checklist dinamico
+  const checklist = [
+    { t:'Cuenta creada',           ok: true },
+    { t:'Diagnostico tributario',  ok: datos?.ingresos > 0 },
+    { t:'Ingresos registrados',    ok: datos?.ingresos > 0 },
+    { t:'Gastos deducibles',       ok: datos?.deducciones > 0 },
+    { t:'Retenciones registradas', ok: datos?.retenciones > 0 },
+    { t:'Documentos completos',    ok: false },
+    { t:'Simulacion generada',     ok: datos?.impuesto_estimado > 0 },
+    { t:'Reporte exportado',       ok: false },
+  ]
+
+  const docsPendientes = 4
+  const proximoPaso = pasos.find(p => !p.completado)
 
   return (
     <div>
       <PageHeader bc="Dashboard" title={`Bienvenido, ${usuario.nombre} 👋`} sub="Resumen de tu proceso tributario — año gravable 2025" />
+      
       <Alert type="info" ico="🗓" text={<>Plazo para declarar renta 2025: hasta el <strong>21 de agosto de 2026</strong>. Te quedan aprox. 3 meses.</>} action="Comenzar →" onAction={() => go('diag')} />
-      <Alert type="warn" ico="⚠" text={<>Tienes <strong>2 documentos pendientes</strong> de cargar para completar tu expediente.</>} action="Ver →" onAction={() => go('docs')} />
+      
+      {docsPendientes > 0 && (
+        <Alert type="warn" ico="⚠" text={<>Tienes <strong>{docsPendientes} documentos pendientes</strong> de cargar para completar tu expediente.</>} action="Ver →" onAction={() => go('docs')} />
+      )}
+
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14}}>
         {[
           {ico:'💰', label:'Ingresos registrados', val:ingresos,    bg:'#E6F1FB'},
@@ -182,51 +214,52 @@ function Dashboard({go, datos, usuario}) {
           </div>
         ))}
       </div>
+
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
         <Card title="Progreso del proceso tributario" ico="🗺">
           <div style={{display:'flex', alignItems:'center', gap:0, marginBottom:16}}>
-            {['Registro','Diagnóstico','Datos','Documentos','Simulación','Reporte'].map((s,i) => (
+            {pasos.map((s,i) => (
               <div key={i} style={{display:'flex', alignItems:'center'}}>
                 <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:4}}>
                   <div style={{width:24, height:24, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:500,
-                    background: i<3?'#185FA5':'transparent', border: i<3?'none': i===3?'1.5px solid #185FA5':'1.5px solid #d1d5db',
-                    color: i<3?'#fff': i===3?'#0C447C':'#9ca3af'}}>
-                    {i<3?'✓':i+1}
+                    background: s.completado ? '#185FA5' : 'transparent',
+                    border: s.completado ? 'none' : i === completados ? '1.5px solid #185FA5' : '1.5px solid #d1d5db',
+                    color: s.completado ? '#fff' : i === completados ? '#0C447C' : '#9ca3af'}}>
+                    {s.completado ? '✓' : i+1}
                   </div>
-                  <div style={{fontSize:10, color: i<=3?'#111':'#9ca3af', whiteSpace:'nowrap'}}>{s}</div>
+                  <div style={{fontSize:10, color: s.completado || i === completados ? '#111' : '#9ca3af', whiteSpace:'nowrap'}}>{s.label}</div>
                 </div>
-                {i<5 && <div style={{height:1, width:20, background: i<3?'#185FA5':'#e5e7eb', margin:'0 4px', marginBottom:14}}></div>}
+                {i < pasos.length-1 && <div style={{height:1, width:20, background: s.completado ? '#185FA5' : '#e5e7eb', margin:'0 4px', marginBottom:14}}></div>}
               </div>
             ))}
           </div>
           <div style={{display:'flex', justifyContent:'space-between', fontSize:11, color:'#6b7280', marginBottom:6}}>
-            <span>Completado</span><span style={{fontWeight:500, color:'#0C447C'}}>57%</span>
+            <span>Completado</span><span style={{fontWeight:500, color:'#0C447C'}}>{porcentaje}%</span>
           </div>
           <div style={{height:5, background:'#f3f4f6', borderRadius:3, overflow:'hidden', marginBottom:12}}>
-            <div style={{height:'100%', width:'57%', background:'#185FA5', borderRadius:3}}></div>
+            <div style={{height:'100%', width:`${porcentaje}%`, background:'#185FA5', borderRadius:3, transition:'width 0.5s'}}></div>
           </div>
+          {proximoPaso && (
+            <div style={{fontSize:11, color:'#6b7280', marginBottom:10}}>
+              Siguiente paso: <strong style={{color:'#0C447C'}}>{proximoPaso.label}</strong>
+            </div>
+          )}
           <div style={{display:'flex', gap:8}}>
             <button onClick={() => go('docs')} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>Continuar proceso →</button>
-            <button onClick={() => go('sim')}  style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>Ver simulación</button>
+            <button onClick={() => go('sim')}  style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>Ver simulacion</button>
           </div>
         </Card>
-        <Card title="Lista de verificación" ico="✅">
+        <Card title="Lista de verificacion" ico="✅">
           <ul style={{listStyle:'none', padding:0, margin:0}}>
-            {[
-              {ok:true,  t:'Cuenta creada'},
-              {ok:true,  t:'Diagnóstico tributario'},
-              {ok:true,  t:'Ingresos registrados'},
-              {ok:true,  t:'Gastos deducibles'},
-              {ok:true,  t:'Retenciones registradas'},
-              {ok:false, t:'Documentos completos'},
-              {ok:false, t:'Simulación generada'},
-              {ok:false, t:'Reporte exportado'},
-            ].map((item,i) => (
+            {checklist.map((item,i) => (
               <li key={i} style={{display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom:'0.5px solid #f3f4f6', fontSize:12}}>
                 <span style={{fontSize:13}}>{item.ok ? '✅' : '🔲'}</span>{item.t}
               </li>
             ))}
           </ul>
+          <div style={{marginTop:10, padding:'8px 10px', borderRadius:6, background:'#f9fafb', fontSize:11, color:'#6b7280', textAlign:'center'}}>
+            {completados} de {pasos.length} pasos completados
+          </div>
         </Card>
       </div>
     </div>
