@@ -379,6 +379,11 @@ function Registro({ usuario }) {
   const retenciones = 3400000
   const impuesto = Math.max(0, (totalIngresos - totalDeducciones * 0.25) * 0.19 - retenciones)
 
+  const agregarIngreso = () => setIngresos([...ingresos, {d:'', f:'2025', v:0, s:'Pendiente'}])
+  const agregarDeduccion = () => setDeducciones([...deducciones, {d:'', f:'2025', v:0}])
+  const eliminarIngreso = (i) => setIngresos(ingresos.filter((_,idx) => idx !== i))
+  const eliminarDeduccion = (i) => setDeducciones(deducciones.filter((_,idx) => idx !== i))
+
   const guardar = async () => {
     try {
       await api.put('/tributario/' + usuario.id, {
@@ -404,13 +409,25 @@ function Registro({ usuario }) {
       <Card title="Ingresos" ico="💰" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
-            <tr>{['Descripcion','Fecha','Valor','Estado'].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
+            <tr>{['Descripcion','Fecha','Valor','Estado',''].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {ingresos.map((r,i) => (
               <tr key={i}>
-                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
-                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.d} onChange={e => {
+                    const nueva = [...ingresos]
+                    nueva[i].d = e.target.value
+                    setIngresos(nueva)
+                  }} style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.f} onChange={e => {
+                    const nueva = [...ingresos]
+                    nueva[i].f = e.target.value
+                    setIngresos(nueva)
+                  }} style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <input type="number" value={Math.round(r.v)} onChange={e => {
                     const nueva = [...ingresos]
@@ -421,25 +438,45 @@ function Registro({ usuario }) {
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <span style={{background: r.s==='Verificado'?'#EAF3DE':'#FAEEDA', color: r.s==='Verificado'?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>{r.s}</span>
                 </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <span onClick={() => eliminarIngreso(i)} style={{cursor:'pointer', color:'#A32D2D', fontSize:14}}>🗑</span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#0C447C', textAlign:'right'}}>
-          Total ingresos: ${Math.round(totalIngresos).toLocaleString()}
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
+          <button onClick={agregarIngreso} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#E6F1FB', color:'#0C447C', border:'0.5px solid #B5D4F4'}}>
+            + Agregar ingreso
+          </button>
+          <div style={{fontSize:12, fontWeight:500, color:'#0C447C'}}>
+            Total: ${Math.round(totalIngresos).toLocaleString()}
+          </div>
         </div>
       </Card>
 
       <Card title="Deducciones" ico="✂" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
-            <tr>{['Descripcion','Periodo','Valor'].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
+            <tr>{['Descripcion','Periodo','Valor',''].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {deducciones.map((r,i) => (
               <tr key={i}>
-                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
-                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.d} onChange={e => {
+                    const nueva = [...deducciones]
+                    nueva[i].d = e.target.value
+                    setDeducciones(nueva)
+                  }} style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.f} onChange={e => {
+                    const nueva = [...deducciones]
+                    nueva[i].f = e.target.value
+                    setDeducciones(nueva)
+                  }} style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <input type="number" value={Math.round(r.v)} onChange={e => {
                     const nueva = [...deducciones]
@@ -447,12 +484,20 @@ function Registro({ usuario }) {
                     setDeducciones(nueva)
                   }} style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <span onClick={() => eliminarDeduccion(i)} style={{cursor:'pointer', color:'#A32D2D', fontSize:14}}>🗑</span>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#A32D2D', textAlign:'right'}}>
-          Total deducciones: ${Math.round(totalDeducciones).toLocaleString()}
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
+          <button onClick={agregarDeduccion} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#EAF3DE', color:'#27500A', border:'0.5px solid #C0DD97'}}>
+            + Agregar deduccion
+          </button>
+          <div style={{fontSize:12, fontWeight:500, color:'#A32D2D'}}>
+            Total: ${Math.round(totalDeducciones).toLocaleString()}
+          </div>
         </div>
       </Card>
 
