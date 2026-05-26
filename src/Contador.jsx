@@ -13,6 +13,12 @@ export default function Contador({ contador, onLogout }) {
     return () => clearInterval(interval)
   }, [])
 
+  useEffect(() => {
+    api.get('/contador/' + contador.id + '/clientes')
+      .then(res => setClientes(res.data))
+      .catch(err => console.error(err))
+  }, [])
+
   const cargarNotificaciones = async () => {
     try {
       const res = await api.get('/contador/' + contador.id + '/notificaciones')
@@ -29,12 +35,16 @@ export default function Contador({ contador, onLogout }) {
     } catch (err) {
       console.error(err)
     }
-}
-  useEffect(() => {
-    api.get('/contador/' + contador.id + '/clientes')
-      .then(res => setClientes(res.data))
-      .catch(err => console.error(err))
-  }, [])
+  }
+
+  const cambiarEstado = async (userId, estado) => {
+    try {
+      await api.put('/tributario/' + userId + '/estado', { estado })
+      setClienteSeleccionado({ ...clienteSeleccionado, estado })
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
   const fmt = (n) => n ? '$' + Math.round(n).toLocaleString() : '$0'
 
@@ -126,10 +136,10 @@ export default function Contador({ contador, onLogout }) {
               {/* Tarjetas resumen */}
               <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16}}>
                 {[
-                  {ico:'💰', label:'Ingresos',      val:fmt(clienteSeleccionado.ingresos),          bg:'#E6F1FB'},
-                  {ico:'✂',  label:'Deducciones',   val:fmt(clienteSeleccionado.deducciones),        bg:'#EAF3DE'},
-                  {ico:'🧾', label:'Retenciones',   val:fmt(clienteSeleccionado.retenciones),        bg:'#FAEEDA'},
-                  {ico:'📋', label:'Impuesto est.', val:fmt(clienteSeleccionado.impuesto_estimado),  bg:'#FCEBEB'},
+                  {ico:'💰', label:'Ingresos',      val:fmt(clienteSeleccionado.ingresos),         bg:'#E6F1FB'},
+                  {ico:'✂',  label:'Deducciones',   val:fmt(clienteSeleccionado.deducciones),       bg:'#EAF3DE'},
+                  {ico:'🧾', label:'Retenciones',   val:fmt(clienteSeleccionado.retenciones),       bg:'#FAEEDA'},
+                  {ico:'📋', label:'Impuesto est.', val:fmt(clienteSeleccionado.impuesto_estimado), bg:'#FCEBEB'},
                 ].map((s,i) => (
                   <div key={i} style={{background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:8, padding:'12px 14px'}}>
                     <div style={{float:'right', width:28, height:28, borderRadius:6, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14}}>{s.ico}</div>
@@ -159,6 +169,28 @@ export default function Contador({ contador, onLogout }) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Estado del reporte */}
+              <div style={{background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:10, padding:'14px 16px', marginBottom:12}}>
+                <div style={{fontSize:13, fontWeight:500, marginBottom:12}}>📋 Estado del reporte</div>
+                <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8}}>
+                  {[
+                    {val:'pendiente',    ico:'📋', label:'Pendiente',             bg:'#f3f4f6', color:'#6b7280'},
+                    {val:'en_revision',  ico:'🔍', label:'En revision',           bg:'#E6F1FB', color:'#0C447C'},
+                    {val:'aprobado',     ico:'✅', label:'Aprobado',              bg:'#EAF3DE', color:'#27500A'},
+                    {val:'correcciones', ico:'⚠',  label:'Requiere correcciones', bg:'#FAEEDA', color:'#633806'},
+                  ].map((e,i) => (
+                    <div key={i} onClick={() => cambiarEstado(clienteSeleccionado.id, e.val)}
+                      style={{padding:'10px 8px', borderRadius:8, textAlign:'center', cursor:'pointer',
+                        background: clienteSeleccionado.estado === e.val ? e.bg : '#f9fafb',
+                        border: clienteSeleccionado.estado === e.val ? `1.5px solid ${e.color}` : '0.5px solid #e5e7eb',
+                        color: clienteSeleccionado.estado === e.val ? e.color : '#6b7280'}}>
+                      <div style={{fontSize:18, marginBottom:4}}>{e.ico}</div>
+                      <div style={{fontSize:10, fontWeight:500}}>{e.label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Notas */}
