@@ -62,7 +62,7 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
           <input placeholder="Buscar módulos, documentos..." style={{border:'none', background:'transparent', fontSize:12, outline:'none', width:'100%'}} />
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginLeft:'auto'}}>
-          <span style={{background:'#E6F1FB', color:'#0C447C', fontSize:11, fontWeight:500, padding:'3px 8px', borderRadius:5}}>Año gravable 2024</span>
+          <span style={{background:'#E6F1FB', color:'#0C447C', fontSize:11, fontWeight:500, padding:'3px 8px', borderRadius:5}}>Año gravable 2025</span>
           <span style={{fontSize:16, cursor:'pointer'}}>🔔</span>
           <div style={{width:28, height:28, borderRadius:'50%', background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:500}}>JC</div>
         </div>
@@ -165,8 +165,8 @@ function Dashboard({go, datos, usuario}) {
 
   return (
     <div>
-      <PageHeader bc="Dashboard" title={`Bienvenido, ${usuario.nombre} 👋`} sub="Resumen de tu proceso tributario — año gravable 2024" />
-      <Alert type="info" ico="🗓" text={<>Plazo para declarar renta 2024: hasta el <strong>21 de agosto de 2025</strong>. Te quedan aprox. 4 meses.</>} action="Comenzar →" onAction={() => go('diag')} />
+      <PageHeader bc="Dashboard" title={`Bienvenido, ${usuario.nombre} 👋`} sub="Resumen de tu proceso tributario — año gravable 2025" />
+      <Alert type="info" ico="🗓" text={<>Plazo para declarar renta 2025: hasta el <strong>21 de agosto de 2026</strong>. Te quedan aprox. 3 meses.</>} action="Comenzar →" onAction={() => go('diag')} />
       <Alert type="warn" ico="⚠" text={<>Tienes <strong>2 documentos pendientes</strong> de cargar para completar tu expediente.</>} action="Ver →" onAction={() => go('docs')} />
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14}}>
         {[
@@ -320,16 +320,26 @@ function Diagnostico({ usuario }) {
 }
 
 function Registro({ usuario }) {
-  const [ingresos, setIngresos] = useState([
-    {d:'Salario mensual', f:'Ene-Dic 2024', v:62500000, s:'Verificado'},
-    {d:'Honorarios freelance', f:'Mar 2024', v:6000000, s:'Pendiente'},
-  ])
-  const [deducciones, setDeducciones] = useState([
-    {d:'Intereses hipotecarios', f:'2024', v:4200000},
-    {d:'Medicina prepagada', f:'2024', v:3600000},
-    {d:'Dependientes', f:'2024', v:4300000},
-  ])
+  const [ingresos, setIngresos] = useState([])
+  const [deducciones, setDeducciones] = useState([])
   const [guardado, setGuardado] = useState(false)
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    api.get('/tributario/' + usuario.id).then(res => {
+      const d = res.data
+      setIngresos([
+        {d:'Salario mensual',      f:'Ene-Dic 2025', v: d.ingresos * 0.9 || 0,  s:'Verificado'},
+        {d:'Honorarios freelance', f:'2025',          v: d.ingresos * 0.1 || 0,  s:'Pendiente'},
+      ])
+      setDeducciones([
+        {d:'Intereses hipotecarios', f:'2025', v: d.deducciones * 0.35 || 0},
+        {d:'Medicina prepagada',     f:'2025', v: d.deducciones * 0.30 || 0},
+        {d:'Dependientes',           f:'2025', v: d.deducciones * 0.35 || 0},
+      ])
+      setCargando(false)
+    }).catch(err => { console.error(err); setCargando(false) })
+  }, [])
 
   const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
   const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
@@ -351,11 +361,13 @@ function Registro({ usuario }) {
     }
   }
 
+  if (cargando) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando datos...</div>
+
   return (
     <div>
-      <PageHeader bc="Registro datos" title="Registro de datos" sub="Ingresa tus ingresos, deducciones y retenciones" />
-      <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2024 para un calculo preciso." />
-      
+      <PageHeader bc="Registro datos" title="Registro de datos" sub="Ingresa tus ingresos, deducciones y retenciones para el año gravable 2025" />
+      <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2025 para un calculo preciso." />
+
       <Card title="Ingresos" ico="💰" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
@@ -367,11 +379,11 @@ function Registro({ usuario }) {
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input type="number" value={r.v} onChange={e => {
+                  <input type="number" value={Math.round(r.v)} onChange={e => {
                     const nueva = [...ingresos]
                     nueva[i].v = Number(e.target.value)
                     setIngresos(nueva)
-                  }} style={{width:120, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  }} style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <span style={{background: r.s==='Verificado'?'#EAF3DE':'#FAEEDA', color: r.s==='Verificado'?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>{r.s}</span>
@@ -381,7 +393,7 @@ function Registro({ usuario }) {
           </tbody>
         </table>
         <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#0C447C', textAlign:'right'}}>
-          Total ingresos: ${totalIngresos.toLocaleString()}
+          Total ingresos: ${Math.round(totalIngresos).toLocaleString()}
         </div>
       </Card>
 
@@ -396,18 +408,18 @@ function Registro({ usuario }) {
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>{r.d}</td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.f}</td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input type="number" value={r.v} onChange={e => {
+                  <input type="number" value={Math.round(r.v)} onChange={e => {
                     const nueva = [...deducciones]
                     nueva[i].v = Number(e.target.value)
                     setDeducciones(nueva)
-                  }} style={{width:120, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  }} style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         <div style={{marginTop:8, fontSize:12, fontWeight:500, color:'#A32D2D', textAlign:'right'}}>
-          Total deducciones: ${totalDeducciones.toLocaleString()}
+          Total deducciones: ${Math.round(totalDeducciones).toLocaleString()}
         </div>
       </Card>
 
@@ -463,7 +475,7 @@ function Documentos({ usuario }) {
   const docsRequeridos = [
     {ico:'📄', name:'Certificado de ingresos y retenciones', meta:'Emitido por empleador · PDF'},
     {ico:'🏦', name:'Certificado bancario', meta:'Extractos del año · PDF'},
-    {ico:'🏠', name:'Certificado hipotecario', meta:'Intereses pagados 2024'},
+    {ico:'🏠', name:'Certificado hipotecario', meta:'Intereses pagados 2025'},
     {ico:'🏥', name:'Medicina prepagada', meta:'Pagos del año'},
   ]
 
@@ -549,7 +561,7 @@ function Simulacion({ go, usuario }) {
 
   return (
     <div>
-      <PageHeader bc="Simulacion" title="Simulacion tributaria" sub="Estimacion de tu impuesto de renta 2024" />
+      <PageHeader bc="Simulacion" title="Simulacion tributaria" sub="Estimacion de tu impuesto de renta 2025" />
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
         <Card title="Detalle del calculo" ico="🧮">
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
@@ -626,7 +638,7 @@ function Reporte({ usuario }) {
             <div style={{display:'flex', alignItems:'center', gap:10}}>
               <div style={{width:36, height:36, borderRadius:8, background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18}}>⚖</div>
               <div>
-                <div style={{fontSize:14, fontWeight:500}}>TributaSmart — Resumen Tributario 2024</div>
+                <div style={{fontSize:14, fontWeight:500}}>TributaSmart — Resumen Tributario 2025</div>
                 <div style={{fontSize:11, color:'#9ca3af'}}>Generado el {new Date().toLocaleDateString('es-CO')} · Confidencial</div>
               </div>
             </div>
