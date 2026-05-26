@@ -6,6 +6,8 @@ export default function Contador({ contador, onLogout }) {
   const [clienteSeleccionado, setClienteSeleccionado] = useState(null)
   const [notificaciones, setNotificaciones] = useState([])
   const [verNotifs, setVerNotifs] = useState(false)
+  const [nota, setNota] = useState('')
+  const [notaGuardada, setNotaGuardada] = useState(false)
 
   useEffect(() => {
     cargarNotificaciones()
@@ -41,6 +43,19 @@ export default function Contador({ contador, onLogout }) {
     try {
       await api.put('/tributario/' + userId + '/estado', { estado })
       setClienteSeleccionado({ ...clienteSeleccionado, estado })
+    } catch (err) {
+      console.error(err)
+    }
+  }
+  const guardarNota = async () => {
+    try {
+      await api.post('/contador/nota', {
+        contador_id: contador.id,
+        usuario_id: clienteSeleccionado.id,
+        nota
+      })
+      setNotaGuardada(true)
+      setTimeout(() => setNotaGuardada(false), 3000)
     } catch (err) {
       console.error(err)
     }
@@ -198,15 +213,18 @@ export default function Contador({ contador, onLogout }) {
                   ))}
                 </div>
               </div>
-
-              {/* Notas */}
+{/* Notas */}
               <div style={{background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:10, padding:'14px 16px'}}>
                 <div style={{fontSize:13, fontWeight:500, marginBottom:8}}>📌 Notas del contador</div>
-                <textarea placeholder="Agrega observaciones para este cliente..."
+                <textarea value={nota} onChange={e => setNota(e.target.value)}
+                  placeholder="Agrega observaciones para este cliente..."
                   style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, resize:'vertical', minHeight:80, outline:'none', boxSizing:'border-box'}} />
-                <button style={{marginTop:8, padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
-                  Guardar nota
-                </button>
+                <div style={{display:'flex', alignItems:'center', gap:10, marginTop:8}}>
+                  <button onClick={guardarNota} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
+                    Guardar nota
+                  </button>
+                  {notaGuardada && <span style={{fontSize:12, color:'#27500A', fontWeight:500}}>✅ Nota guardada</span>}
+                </div>
               </div>
             </div>
           )}
