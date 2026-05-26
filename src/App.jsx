@@ -51,7 +51,7 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
   return (
     <div style={{display:'flex', flexDirection:'column', minHeight:'100vh', fontFamily:'system-ui, sans-serif'}}>
       
-      {/* TOPBAR */}
+     {/* TOPBAR */}
       <div style={{height:48, background:'#fff', borderBottom:'0.5px solid #e5e7eb', display:'flex', alignItems:'center', padding:'0 16px', gap:12}}>
         <div style={{display:'flex', alignItems:'center', gap:8, minWidth:200}}>
           <div style={{width:28, height:28, borderRadius:6, background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14}}>⚖</div>
@@ -59,14 +59,46 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
         </div>
         <div style={{flex:1, display:'flex', alignItems:'center', gap:6, background:'#f9fafb', border:'0.5px solid #e5e7eb', borderRadius:6, padding:'6px 10px', maxWidth:280}}>
           <span>🔍</span>
-          <input placeholder="Buscar módulos, documentos..." style={{border:'none', background:'transparent', fontSize:12, outline:'none', width:'100%'}} />
+          <input placeholder="Buscar modulos, documentos..." style={{border:'none', background:'transparent', fontSize:12, outline:'none', width:'100%'}} />
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginLeft:'auto'}}>
           <span style={{background:'#E6F1FB', color:'#0C447C', fontSize:11, fontWeight:500, padding:'3px 8px', borderRadius:5}}>Año gravable 2025</span>
-          <span style={{fontSize:16, cursor:'pointer'}}>🔔</span>
-          <div style={{width:28, height:28, borderRadius:'50%', background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:500}}>JC</div>
+          
+          {/* Notificaciones cliente */}
+          <div style={{position:'relative'}}>
+            <span onClick={() => setVerNotifs(!verNotifs)} style={{fontSize:16, cursor:'pointer'}}>🔔</span>
+            {notifCliente.filter(n => !n.leida).length > 0 && (
+              <span style={{position:'absolute', top:-4, right:-4, background:'#A32D2D', color:'#fff', fontSize:9, fontWeight:500, padding:'1px 4px', borderRadius:10}}>
+                {notifCliente.filter(n => !n.leida).length}
+              </span>
+            )}
+            {verNotifs && (
+              <div style={{position:'absolute', right:0, top:30, width:300, background:'#fff', border:'0.5px solid #e5e7eb', borderRadius:10, boxShadow:'0 4px 12px rgba(0,0,0,0.1)', zIndex:100}}>
+                <div style={{padding:'10px 14px', borderBottom:'0.5px solid #e5e7eb', fontSize:12, fontWeight:500, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <span>Notificaciones</span>
+                  {notifCliente.filter(n => !n.leida).length > 0 && (
+                    <span onClick={marcarTodasLeidas} style={{fontSize:10, color:'#185FA5', cursor:'pointer'}}>Marcar todas leidas</span>
+                  )}
+                </div>
+                {notifCliente.length === 0 && (
+                  <div style={{padding:'12px 14px', fontSize:12, color:'#9ca3af'}}>No tienes notificaciones</div>
+                )}
+                {notifCliente.map((n,i) => (
+                  <div key={i} style={{padding:'10px 14px', borderBottom:'0.5px solid #f3f4f6', background: n.leida?'#fff':'#E6F1FB'}}>
+                    <div style={{fontSize:12, marginBottom:4}}>{n.mensaje}</div>
+                    <div style={{fontSize:10, color:'#9ca3af'}}>{new Date(n.created_at).toLocaleDateString('es-CO')}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{width:28, height:28, borderRadius:'50%', background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:11, fontWeight:500}}>
+            {usuario.nombre?.charAt(0).toUpperCase()}
+          </div>
         </div>
       </div>
+      
 
       <div style={{display:'flex', flex:1}}>
         

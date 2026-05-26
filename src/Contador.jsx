@@ -40,13 +40,13 @@ export default function Contador({ contador, onLogout }) {
   }
 
   const cambiarEstado = async (userId, estado) => {
-    try {
-      await api.put('/tributario/' + userId + '/estado', { estado })
-      setClienteSeleccionado({ ...clienteSeleccionado, estado })
-    } catch (err) {
-      console.error(err)
-    }
+  try {
+    await api.put('/tributario/' + userId + '/estado', { estado, contador_id: contador.id })
+    setClienteSeleccionado({ ...clienteSeleccionado, estado })
+  } catch (err) {
+    console.error(err)
   }
+}
   const guardarNota = async () => {
     try {
       await api.post('/notas/guardar', {
