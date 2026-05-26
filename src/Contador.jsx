@@ -49,7 +49,7 @@ export default function Contador({ contador, onLogout }) {
   }
   const guardarNota = async () => {
     try {
-      await api.post('/contador/nota', {
+      await api.post('/notas/guardar', {
         contador_id: contador.id,
         usuario_id: clienteSeleccionado.id,
         nota
