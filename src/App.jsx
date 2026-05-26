@@ -651,8 +651,11 @@ function Perfil({ go, usuario }) {
     cedula: usuario.cedula || '',
     email: usuario.email || '',
     telefono: usuario.telefono || '',
+    password_actual: '',
+    password_nuevo: '',
   })
   const [guardado, setGuardado] = useState(false)
+  const [mensajePassword, setMensajePassword] = useState('')
 
   const cambiar = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -663,6 +666,20 @@ function Perfil({ go, usuario }) {
       setTimeout(() => setGuardado(false), 3000)
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const cambiarPassword = async () => {
+    try {
+      await api.put('/usuario/' + usuario.id + '/password', {
+        password_actual: form.password_actual,
+        password_nuevo: form.password_nuevo
+      })
+      setMensajePassword('✅ Contrasena actualizada correctamente')
+      setTimeout(() => setMensajePassword(''), 3000)
+    } catch (err) {
+      setMensajePassword('❌ ' + (err.response?.data?.error || 'Error al cambiar contrasena'))
+      setTimeout(() => setMensajePassword(''), 3000)
     }
   }
 
@@ -693,14 +710,24 @@ function Perfil({ go, usuario }) {
         <div>
           <Card title="Seguridad" ico="🔒" style={{marginBottom:10}}>
             <div style={{display:'flex', flexDirection:'column', gap:8, marginBottom:10}}>
-              {['Contrasena actual','Nueva contrasena'].map((l,i) => (
-                <div key={i}>
-                  <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>{l}</label>
-                  <input type="password" placeholder={i===1?'Minimo 8 caracteres':''} style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
-                </div>
-              ))}
+              <div>
+                <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>Contrasena actual</label>
+                <input type="password" name="password_actual" value={form.password_actual||''} onChange={cambiar}
+                  style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
+              </div>
+              <div>
+                <label style={{display:'block', fontSize:11, fontWeight:500, color:'#6b7280', marginBottom:4}}>Nueva contrasena</label>
+                <input type="password" name="password_nuevo" value={form.password_nuevo||''} onChange={cambiar}
+                  placeholder="Minimo 8 caracteres"
+                  style={{width:'100%', padding:'8px 10px', borderRadius:6, border:'0.5px solid #e5e7eb', background:'#f9fafb', fontSize:12, outline:'none', boxSizing:'border-box'}} />
+              </div>
             </div>
-            <button style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>Cambiar contrasena</button>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <button onClick={cambiarPassword} style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#fff', color:'#374151', border:'0.5px solid #d1d5db'}}>
+                Cambiar contrasena
+              </button>
+              {mensajePassword && <span style={{fontSize:12, color: mensajePassword.includes('incorrecta') ? '#A32D2D' : '#27500A', fontWeight:500}}>{mensajePassword}</span>}
+            </div>
           </Card>
           <Alert type="ok" ico="🔐" text="Datos cifrados con TLS 1.3. TributaSmart nunca comparte tu informacion con terceros." />
         </div>
