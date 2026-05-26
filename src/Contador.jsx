@@ -127,11 +127,17 @@ export default function Contador({ contador, onLogout }) {
           ) : (
             <div>
               {/* Header cliente */}
-              <div style={{marginBottom:16}}>
+            <div style={{marginBottom:16, display:'flex', alignItems:'flex-start', justifyContent:'space-between'}}>
+              <div>
                 <div style={{fontSize:11, color:'#9ca3af', marginBottom:4}}>Portal Contador / Cliente</div>
                 <div style={{fontSize:18, fontWeight:500}}>{clienteSeleccionado.nombre}</div>
                 <div style={{fontSize:12, color:'#6b7280'}}>{clienteSeleccionado.email} · CC {clienteSeleccionado.cedula}</div>
               </div>
+              <button onClick={() => window.open('https://tributasmart-backend.onrender.com/reporte/' + clienteSeleccionado.id + '/pdf', '_blank')}
+                style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#639922', color:'#fff', border:'none', display:'flex', alignItems:'center', gap:6}}>
+                📥 Descargar PDF del cliente
+              </button>
+            </div>
 
               {/* Tarjetas resumen */}
               <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16}}>
