@@ -8,6 +8,8 @@ export default function App() {
   const [page, setPage] = useState('dash')
   const [datos, setDatos] = useState(null)
   const [usuario, setUsuario] = useState(null)
+  const [notifCliente, setNotifCliente] = useState([])
+  const [verNotifs, setVerNotifs] = useState(false)
 
   useEffect(() => {
     const u = localStorage.getItem('usuario')
@@ -23,19 +25,45 @@ export default function App() {
     }
   }, [usuario])
 
+  useEffect(() => {
+    if (usuario) {
+      cargarNotifCliente()
+      const interval = setInterval(cargarNotifCliente, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [usuario])
+
+  const cargarNotifCliente = async () => {
+    try {
+      const res = await api.get('/usuario/' + usuario.id + '/notificaciones')
+      setNotifCliente(res.data)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const marcarTodasLeidas = async () => {
+    try {
+      await api.put('/usuario/' + usuario.id + '/notificaciones/leer')
+      cargarNotifCliente()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const go = (id) => setPage(id)
 
   const onLogin = (u, token) => {
-  localStorage.setItem('usuario', JSON.stringify(u))
-  localStorage.setItem('token', token)
-  setUsuario(u)
-}
+    localStorage.setItem('usuario', JSON.stringify(u))
+    localStorage.setItem('token', token)
+    setUsuario(u)
+  }
 
-const onLoginContador = (c, token) => {
-  localStorage.setItem('contador', JSON.stringify(c))
-  localStorage.setItem('token', token)
-  setUsuario(c)
-}
+  const onLoginContador = (c, token) => {
+    localStorage.setItem('contador', JSON.stringify(c))
+    localStorage.setItem('token', token)
+    setUsuario(c)
+  }
 
   const onLogout = () => {
     localStorage.removeItem('usuario')
@@ -44,14 +72,13 @@ const onLoginContador = (c, token) => {
     setPage('dash')
   }
 
-if (!usuario) return <Login onLogin={onLogin} onLoginContador={onLoginContador} />
-if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={onLogout} />
-
+  if (!usuario) return <Login onLogin={onLogin} onLoginContador={onLoginContador} />
+  if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={onLogout} />
 
   return (
     <div style={{display:'flex', flexDirection:'column', minHeight:'100vh', fontFamily:'system-ui, sans-serif'}}>
-      
-     {/* TOPBAR */}
+
+      {/* TOPBAR */}
       <div style={{height:48, background:'#fff', borderBottom:'0.5px solid #e5e7eb', display:'flex', alignItems:'center', padding:'0 16px', gap:12}}>
         <div style={{display:'flex', alignItems:'center', gap:8, minWidth:200}}>
           <div style={{width:28, height:28, borderRadius:6, background:'#185FA5', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14}}>⚖</div>
@@ -63,7 +90,7 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginLeft:'auto'}}>
           <span style={{background:'#E6F1FB', color:'#0C447C', fontSize:11, fontWeight:500, padding:'3px 8px', borderRadius:5}}>Año gravable 2025</span>
-          
+
           {/* Notificaciones cliente */}
           <div style={{position:'relative'}}>
             <span onClick={() => setVerNotifs(!verNotifs)} style={{fontSize:16, cursor:'pointer'}}>🔔</span>
@@ -98,11 +125,10 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
           </div>
         </div>
       </div>
-      
 
       <div style={{display:'flex', flex:1}}>
-        
-       {/* SIDEBAR */}
+
+        {/* SIDEBAR */}
         <aside style={{width:200, background:'#fff', borderRight:'0.5px solid #e5e7eb', padding:'10px 8px'}}>
           {[
             {id:'dash', ico:'🏠', label:'Dashboard'},
@@ -129,11 +155,11 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
             <div style={{flex:1}}>
               <div style={{fontSize:11, fontWeight:500}}>{usuario.nombre}</div>
               <div style={{fontSize:10, color:'#9ca3af'}}>
-              {usuario.tipo === 'empleado' ? '👔 Empleado' : 
-              usuario.tipo === 'independiente' ? '💼 Independiente' : 
-              usuario.tipo === 'emprendedor' ? '🚀 Emprendedor' : 
-              usuario.tipo === 'pensionado' ? '🏖 Pensionado' : '👤 Usuario'}
-            </div>
+                {usuario.tipo === 'empleado' ? '👔 Empleado' :
+                usuario.tipo === 'independiente' ? '💼 Independiente' :
+                usuario.tipo === 'emprendedor' ? '🚀 Emprendedor' :
+                usuario.tipo === 'pensionado' ? '🏖 Pensionado' : '👤 Usuario'}
+              </div>
             </div>
             <span onClick={onLogout} style={{fontSize:10, color:'#A32D2D', cursor:'pointer', fontWeight:500}}>Salir</span>
           </div>
@@ -143,10 +169,10 @@ if (usuario.rol === 'contador') return <Contador contador={usuario} onLogout={on
         <main style={{flex:1, padding:16, overflowY:'auto', background:'#f9fafb'}}>
           {page === 'dash' && <Dashboard go={go} datos={datos} usuario={usuario} />}
           {page === 'diag' && <Diagnostico usuario={usuario} />}
-          {page === 'reg' && <Registro usuario={usuario} />}
+          {page === 'reg'  && <Registro usuario={usuario} />}
           {page === 'docs' && <Documentos usuario={usuario} />}
-          {page === 'sim' && <Simulacion go={go} usuario={usuario} />}
-          {page === 'rep' && <Reporte usuario={usuario} />}
+          {page === 'sim'  && <Simulacion go={go} usuario={usuario} />}
+          {page === 'rep'  && <Reporte usuario={usuario} />}
           {page === 'perf' && <Perfil go={go} usuario={usuario} />}
         </main>
       </div>
@@ -195,19 +221,17 @@ function Dashboard({go, datos, usuario}) {
   const retenciones = datos ? `$${(datos.retenciones/1000000).toFixed(1)}M` : '$0'
   const impuesto = datos ? `$${(datos.impuesto_estimado/1000000).toFixed(2)}M` : '$0'
 
-  // Calcular progreso dinamicamente
   const pasos = [
-    { label:'Registro',     completado: true },
-    { label:'Diagnostico',  completado: datos?.ingresos > 0 },
-    { label:'Datos',        completado: datos?.ingresos > 0 && datos?.deducciones > 0 },
-    { label:'Documentos',   completado: false },
-    { label:'Simulacion',   completado: datos?.impuesto_estimado > 0 },
-    { label:'Reporte',      completado: false },
+    { label:'Registro',    completado: true },
+    { label:'Diagnostico', completado: datos?.ingresos > 0 },
+    { label:'Datos',       completado: datos?.ingresos > 0 && datos?.deducciones > 0 },
+    { label:'Documentos',  completado: false },
+    { label:'Simulacion',  completado: datos?.impuesto_estimado > 0 },
+    { label:'Reporte',     completado: false },
   ]
   const completados = pasos.filter(p => p.completado).length
   const porcentaje = Math.round((completados / pasos.length) * 100)
 
-  // Checklist dinamico
   const checklist = [
     { t:'Cuenta creada',           ok: true },
     { t:'Diagnostico tributario',  ok: datos?.ingresos > 0 },
@@ -225,19 +249,16 @@ function Dashboard({go, datos, usuario}) {
   return (
     <div>
       <PageHeader bc="Dashboard" title={`Bienvenido, ${usuario.nombre} 👋`} sub="Resumen de tu proceso tributario — año gravable 2025" />
-      
       <Alert type="info" ico="🗓" text={<>Plazo para declarar renta 2025: hasta el <strong>21 de agosto de 2026</strong>. Te quedan aprox. 3 meses.</>} action="Comenzar →" onAction={() => go('diag')} />
-      
       {docsPendientes > 0 && (
         <Alert type="warn" ico="⚠" text={<>Tienes <strong>{docsPendientes} documentos pendientes</strong> de cargar para completar tu expediente.</>} action="Ver →" onAction={() => go('docs')} />
       )}
-
       <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14}}>
         {[
           {ico:'💰', label:'Ingresos registrados', val:ingresos,    bg:'#E6F1FB'},
           {ico:'✂',  label:'Gastos deducibles',    val:deducciones, bg:'#EAF3DE'},
-          {ico:'🧾', label:'Retenciones a favor',   val:retenciones, bg:'#FAEEDA'},
-          {ico:'📋', label:'Impuesto estimado',      val:impuesto,    bg:'#FCEBEB'},
+          {ico:'🧾', label:'Retenciones a favor',  val:retenciones, bg:'#FAEEDA'},
+          {ico:'📋', label:'Impuesto estimado',     val:impuesto,    bg:'#FCEBEB'},
         ].map((s,i) => (
           <div key={i} style={{background:'#f9fafb', borderRadius:8, padding:'12px 14px'}}>
             <div style={{float:'right', width:30, height:30, borderRadius:6, background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:16}}>{s.ico}</div>
@@ -246,7 +267,6 @@ function Dashboard({go, datos, usuario}) {
           </div>
         ))}
       </div>
-
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
         <Card title="Progreso del proceso tributario" ico="🗺">
           <div style={{display:'flex', alignItems:'center', gap:0, marginBottom:16}}>
@@ -326,12 +346,10 @@ function Diagnostico({ usuario }) {
   return (
     <div>
       <PageHeader bc="Diagnostico" title="Diagnostico tributario" sub="Determina si estas obligado a declarar renta en Colombia 2026" />
-      
       <div style={{display:'flex', alignItems:'center', gap:8, background:'#E6F1FB', borderRadius:6, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#0C447C'}}>
         <span>👤</span>
         <span>Tipo de contribuyente: <strong>{tipoLabel[usuario.tipo] || '👤 Usuario'}</strong></span>
       </div>
-
       <Card title="Cuestionario" ico="📋">
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:12}}>
           {[
@@ -353,7 +371,6 @@ function Diagnostico({ usuario }) {
           style={{padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
           {cargando ? 'Calculando...' : 'Calcular diagnostico'}
         </button>
-
         {resultado && (
           <div style={{marginTop:16}}>
             <div style={{padding:'12px 16px', borderRadius:8, background: resultado.debeDeclarar ? '#FCEBEB' : '#EAF3DE', border: `0.5px solid ${resultado.debeDeclarar ? '#F4A0A0' : '#C0DD97'}`, marginBottom:10}}>
@@ -390,29 +407,29 @@ function Registro({ usuario }) {
   const [guardado, setGuardado] = useState(false)
   const [cargando, setCargando] = useState(true)
 
-useEffect(() => {
-  api.get('/tributario/' + usuario.id).then(res => {
-    const d = res.data
-    if (d.ingresos > 0) {
-      setIngresos([
-        {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
-        {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
-      ])
-    } else {
-      setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
-    }
-    if (d.deducciones > 0) {
-      setDeducciones([
-        {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
-        {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
-        {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
-      ])
-    } else {
-      setDeducciones([{d:'', f:'', v:0}])
-    }
-    setCargando(false)
-  }).catch(err => { console.error(err); setCargando(false) })
-}, [])
+  useEffect(() => {
+    api.get('/tributario/' + usuario.id).then(res => {
+      const d = res.data
+      if (d.ingresos > 0) {
+        setIngresos([
+          {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
+          {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
+        ])
+      } else {
+        setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
+      }
+      if (d.deducciones > 0) {
+        setDeducciones([
+          {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
+          {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
+          {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
+        ])
+      } else {
+        setDeducciones([{d:'', f:'', v:0}])
+      }
+      setCargando(false)
+    }).catch(err => { console.error(err); setCargando(false) })
+  }, [])
 
   const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
   const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
@@ -445,7 +462,6 @@ useEffect(() => {
     <div>
       <PageHeader bc="Registro datos" title="Registro de datos" sub="Ingresa tus ingresos, deducciones y retenciones para el año gravable 2025" />
       <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2025 para un calculo preciso." />
-
       <Card title="Ingresos" ico="💰" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
@@ -455,25 +471,16 @@ useEffect(() => {
             {ingresos.map((r,i) => (
               <tr key={i}>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input value={r.d} onChange={e => {
-                    const nueva = [...ingresos]
-                    nueva[i].d = e.target.value
-                    setIngresos(nueva)
-                  }} style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input value={r.d} onChange={e => { const nueva = [...ingresos]; nueva[i].d = e.target.value; setIngresos(nueva) }}
+                    style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input value={r.f} onChange={e => {
-                    const nueva = [...ingresos]
-                    nueva[i].f = e.target.value
-                    setIngresos(nueva)
-                  }} style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input value={r.f} onChange={e => { const nueva = [...ingresos]; nueva[i].f = e.target.value; setIngresos(nueva) }}
+                    style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input type="number" value={Math.round(r.v)} onChange={e => {
-                    const nueva = [...ingresos]
-                    nueva[i].v = Number(e.target.value)
-                    setIngresos(nueva)
-                  }} style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input type="number" value={Math.round(r.v)} onChange={e => { const nueva = [...ingresos]; nueva[i].v = Number(e.target.value); setIngresos(nueva) }}
+                    style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <span style={{background: r.s==='Verificado'?'#EAF3DE':'#FAEEDA', color: r.s==='Verificado'?'#27500A':'#633806', padding:'2px 7px', borderRadius:20, fontSize:10, fontWeight:500}}>{r.s}</span>
@@ -486,12 +493,8 @@ useEffect(() => {
           </tbody>
         </table>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
-          <button onClick={agregarIngreso} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#E6F1FB', color:'#0C447C', border:'0.5px solid #B5D4F4'}}>
-            + Agregar ingreso
-          </button>
-          <div style={{fontSize:12, fontWeight:500, color:'#0C447C'}}>
-            Total: ${Math.round(totalIngresos).toLocaleString()}
-          </div>
+          <button onClick={agregarIngreso} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#E6F1FB', color:'#0C447C', border:'0.5px solid #B5D4F4'}}>+ Agregar ingreso</button>
+          <div style={{fontSize:12, fontWeight:500, color:'#0C447C'}}>Total: ${Math.round(totalIngresos).toLocaleString()}</div>
         </div>
       </Card>
 
@@ -504,25 +507,16 @@ useEffect(() => {
             {deducciones.map((r,i) => (
               <tr key={i}>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input value={r.d} onChange={e => {
-                    const nueva = [...deducciones]
-                    nueva[i].d = e.target.value
-                    setDeducciones(nueva)
-                  }} style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input value={r.d} onChange={e => { const nueva = [...deducciones]; nueva[i].d = e.target.value; setDeducciones(nueva) }}
+                    style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input value={r.f} onChange={e => {
-                    const nueva = [...deducciones]
-                    nueva[i].f = e.target.value
-                    setDeducciones(nueva)
-                  }} style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input value={r.f} onChange={e => { const nueva = [...deducciones]; nueva[i].f = e.target.value; setDeducciones(nueva) }}
+                    style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
-                  <input type="number" value={Math.round(r.v)} onChange={e => {
-                    const nueva = [...deducciones]
-                    nueva[i].v = Number(e.target.value)
-                    setDeducciones(nueva)
-                  }} style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                  <input type="number" value={Math.round(r.v)} onChange={e => { const nueva = [...deducciones]; nueva[i].v = Number(e.target.value); setDeducciones(nueva) }}
+                    style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
                 </td>
                 <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
                   <span onClick={() => eliminarDeduccion(i)} style={{cursor:'pointer', color:'#A32D2D', fontSize:14}}>🗑</span>
@@ -532,12 +526,8 @@ useEffect(() => {
           </tbody>
         </table>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
-          <button onClick={agregarDeduccion} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#EAF3DE', color:'#27500A', border:'0.5px solid #C0DD97'}}>
-            + Agregar deduccion
-          </button>
-          <div style={{fontSize:12, fontWeight:500, color:'#A32D2D'}}>
-            Total: ${Math.round(totalDeducciones).toLocaleString()}
-          </div>
+          <button onClick={agregarDeduccion} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#EAF3DE', color:'#27500A', border:'0.5px solid #C0DD97'}}>+ Agregar deduccion</button>
+          <div style={{fontSize:12, fontWeight:500, color:'#A32D2D'}}>Total: ${Math.round(totalDeducciones).toLocaleString()}</div>
         </div>
       </Card>
 
@@ -556,17 +546,13 @@ function Documentos({ usuario }) {
   const [subiendo, setSubiendo] = useState(false)
   const [mensaje, setMensaje] = useState('')
 
-  useEffect(() => {
-    cargarDocs()
-  }, [])
+  useEffect(() => { cargarDocs() }, [])
 
   const cargarDocs = async () => {
     try {
       const res = await api.get('/documentos/' + usuario.id)
       setDocs(res.data)
-    } catch (err) {
-      console.error(err)
-    }
+    } catch (err) { console.error(err) }
   }
 
   const subir = async (e) => {
@@ -578,15 +564,11 @@ function Documentos({ usuario }) {
     formData.append('nombre', archivo.name)
     formData.append('tipo', 'documento')
     try {
-      await api.post('/documentos/' + usuario.id + '/subir', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      await api.post('/documentos/' + usuario.id + '/subir', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
       setMensaje('Documento subido correctamente')
       cargarDocs()
       setTimeout(() => setMensaje(''), 3000)
-    } catch (err) {
-      setMensaje('Error al subir el documento')
-    }
+    } catch (err) { setMensaje('Error al subir el documento') }
     setSubiendo(false)
   }
 
@@ -600,13 +582,8 @@ function Documentos({ usuario }) {
   return (
     <div>
       <PageHeader bc="Documentos" title="Documentos" sub="Carga los soportes necesarios para tu declaracion" />
-      {docs.length < docsRequeridos.length && (
-        <Alert type="warn" ico="⚠" text={`Tienes ${docsRequeridos.length - docs.length} documentos pendientes de cargar.`} />
-      )}
-      {docs.length >= docsRequeridos.length && (
-        <Alert type="ok" ico="✅" text="Todos los documentos han sido cargados correctamente." />
-      )}
-
+      {docs.length < docsRequeridos.length && <Alert type="warn" ico="⚠" text={`Tienes ${docsRequeridos.length - docs.length} documentos pendientes de cargar.`} />}
+      {docs.length >= docsRequeridos.length && <Alert type="ok" ico="✅" text="Todos los documentos han sido cargados correctamente." />}
       <Card title="Documentos requeridos" ico="📁" style={{marginBottom:12}}>
         {docsRequeridos.map((d,i) => {
           const cargado = docs[i]
@@ -624,7 +601,6 @@ function Documentos({ usuario }) {
           )
         })}
       </Card>
-
       <Card title="Subir documento" ico="📎">
         <div style={{border:'1.5px dashed #d1d5db', borderRadius:8, padding:24, textAlign:'center', background:'#f9fafb', marginBottom:10}}>
           <div style={{fontSize:24, marginBottom:6}}>📎</div>
@@ -635,12 +611,7 @@ function Documentos({ usuario }) {
             <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={subir} style={{display:'none'}} />
           </label>
         </div>
-        {mensaje && (
-          <div style={{background:'#EAF3DE', border:'0.5px solid #C0DD97', borderRadius:6, padding:'8px 12px', fontSize:12, color:'#27500A'}}>
-            ✅ {mensaje}
-          </div>
-        )}
-
+        {mensaje && <div style={{background:'#EAF3DE', border:'0.5px solid #C0DD97', borderRadius:6, padding:'8px 12px', fontSize:12, color:'#27500A'}}>✅ {mensaje}</div>}
         {docs.length > 0 && (
           <div style={{marginTop:12}}>
             <div style={{fontSize:12, fontWeight:500, marginBottom:8}}>Documentos subidos ({docs.length})</div>
@@ -663,9 +634,7 @@ function Simulacion({ go, usuario }) {
   const [datos, setDatos] = useState(null)
 
   useEffect(() => {
-    api.get('/tributario/' + usuario.id)
-      .then(res => setDatos(res.data))
-      .catch(err => console.error(err))
+    api.get('/tributario/' + usuario.id).then(res => setDatos(res.data)).catch(err => console.error(err))
   }, [])
 
   if (!datos) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando simulacion...</div>
@@ -674,7 +643,6 @@ function Simulacion({ go, usuario }) {
   const rentaLiquida = datos.ingresos - rentaExenta - datos.deducciones
   const impuestoTabla = Math.max(0, rentaLiquida * 0.19)
   const impuestoNeto = Math.max(0, impuestoTabla - datos.retenciones)
-
   const fmt = (n) => '$' + Math.round(n).toLocaleString()
 
   return (
@@ -685,11 +653,11 @@ function Simulacion({ go, usuario }) {
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
             <tbody>
               {[
-                {l:'Ingresos brutos',        v:fmt(datos.ingresos),   c:''},
-                {l:'(-) Rentas exentas 25%', v:'-'+fmt(rentaExenta),  c:'#A32D2D'},
+                {l:'Ingresos brutos',        v:fmt(datos.ingresos),        c:''},
+                {l:'(-) Rentas exentas 25%', v:'-'+fmt(rentaExenta),       c:'#A32D2D'},
                 {l:'(-) Deducciones',        v:'-'+fmt(datos.deducciones), c:'#A32D2D'},
-                {l:'= Renta liquida',        v:fmt(rentaLiquida),     c:'#0C447C'},
-                {l:'Impuesto segun tabla',   v:fmt(impuestoTabla),    c:''},
+                {l:'= Renta liquida',        v:fmt(rentaLiquida),          c:'#0C447C'},
+                {l:'Impuesto segun tabla',   v:fmt(impuestoTabla),         c:''},
                 {l:'(-) Retenciones',        v:'-'+fmt(datos.retenciones), c:'#27500A'},
               ].map((r,i) => (
                 <tr key={i}>
@@ -726,12 +694,12 @@ function Simulacion({ go, usuario }) {
 }
 
 function Reporte({ usuario }) {
+  const [enviando, setEnviando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
+
   const descargarPDF = () => {
     window.open('https://tributasmart-backend.onrender.com/reporte/' + usuario.id + '/pdf', '_blank')
   }
-
-  const [enviando, setEnviando] = useState(false)
-  const [enviado, setEnviado] = useState(false)
 
   const enviarContador = async () => {
     setEnviando(true)
@@ -739,11 +707,10 @@ function Reporte({ usuario }) {
       await api.post('/reporte/' + usuario.id + '/enviar')
       setEnviado(true)
       setTimeout(() => setEnviado(false), 3000)
-    } catch (err) {
-      console.error(err)
-    }
+    } catch (err) { console.error(err) }
     setEnviando(false)
   }
+
   return (
     <div>
       <PageHeader bc="Reporte final" title="Reporte para tu contador" sub="Resumen consolidado listo para compartir con tu profesional contable" />
@@ -787,7 +754,7 @@ function Reporte({ usuario }) {
             <button onClick={descargarPDF} style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#639922', color:'#fff', border:'none'}}>
               📥 Descargar PDF
             </button>
-           <button onClick={enviarContador} disabled={enviando}
+            <button onClick={enviarContador} disabled={enviando}
               style={{width:'100%', padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'center', gap:5, background:'#185FA5', color:'#fff', border:'none'}}>
               {enviando ? 'Enviando...' : enviado ? '✅ Enviado al contador' : '📧 Enviar al contador'}
             </button>
@@ -824,9 +791,7 @@ function Perfil({ go, usuario }) {
       await api.put('/usuario/' + usuario.id, form)
       setGuardado(true)
       setTimeout(() => setGuardado(false), 3000)
-    } catch (err) {
-      console.error(err)
-    }
+    } catch (err) { console.error(err) }
   }
 
   const cambiarPassword = async () => {
