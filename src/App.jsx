@@ -632,33 +632,69 @@ function Documentos({ usuario }) {
 
 function Simulacion({ go, usuario }) {
   const [datos, setDatos] = useState(null)
+  const [calculo, setCalculo] = useState(null)
+  const [calculando, setCalculando] = useState(false)
 
   useEffect(() => {
-    api.get('/tributario/' + usuario.id).then(res => setDatos(res.data)).catch(err => console.error(err))
+    api.get('/tributario/' + usuario.id)
+      .then(res => setDatos(res.data))
+      .catch(err => console.error(err))
   }, [])
+
+  const calcularReal = async () => {
+    setCalculando(true)
+    try {
+      const res = await api.post('/calcular/' + usuario.id)
+      setCalculo(res.data)
+      // Recargar datos actualizados
+      const res2 = await api.get('/tributario/' + usuario.id)
+      setDatos(res2.data)
+    } catch (err) {
+      console.error(err)
+    }
+    setCalculando(false)
+  }
 
   if (!datos) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando simulacion...</div>
 
-  const rentaExenta = datos.ingresos * 0.25
-  const rentaLiquida = datos.ingresos - rentaExenta - datos.deducciones
-  const impuestoTabla = Math.max(0, rentaLiquida * 0.19)
-  const impuestoNeto = Math.max(0, impuestoTabla - datos.retenciones)
   const fmt = (n) => '$' + Math.round(n).toLocaleString()
+  const c = calculo || {
+    ingresos: datos.ingresos,
+    renta_exenta: datos.ingresos * 0.25,
+    deducciones: datos.deducciones,
+    renta_liquida: Math.max(0, datos.ingresos - datos.ingresos*0.25 - datos.deducciones),
+    impuesto_tabla: datos.impuesto_estimado,
+    retenciones: datos.retenciones,
+    impuesto_neto: datos.impuesto_estimado,
+    renta_en_uvt: Math.round((datos.ingresos - datos.ingresos*0.25 - datos.deducciones) / 49799),
+    uvt: 49799
+  }
 
   return (
     <div>
-      <PageHeader bc="Simulacion" title="Simulacion tributaria" sub="Estimacion de tu impuesto de renta 2025" />
+      <PageHeader bc="Simulacion" title="Simulacion tributaria" sub="Estimacion de tu impuesto de renta 2025 — Tabla DIAN oficial" />
+      
+      <div style={{display:'flex', alignItems:'center', gap:8, background:'#E6F1FB', borderRadius:6, padding:'8px 12px', marginBottom:12, fontSize:12, color:'#0C447C'}}>
+        <span>📊</span>
+        <span>UVT 2025: <strong>$49.799</strong> · Calculo basado en tabla oficial DIAN</span>
+        <button onClick={calcularReal} disabled={calculando}
+          style={{marginLeft:'auto', padding:'4px 10px', borderRadius:4, fontSize:11, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>
+          {calculando ? 'Calculando...' : '🔄 Recalcular con tabla DIAN'}
+        </button>
+      </div>
+
       <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:12}}>
-        <Card title="Detalle del calculo" ico="🧮">
+        <Card title="Detalle del calculo oficial" ico="🧮">
           <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
             <tbody>
               {[
-                {l:'Ingresos brutos',        v:fmt(datos.ingresos),        c:''},
-                {l:'(-) Rentas exentas 25%', v:'-'+fmt(rentaExenta),       c:'#A32D2D'},
-                {l:'(-) Deducciones',        v:'-'+fmt(datos.deducciones), c:'#A32D2D'},
-                {l:'= Renta liquida',        v:fmt(rentaLiquida),          c:'#0C447C'},
-                {l:'Impuesto segun tabla',   v:fmt(impuestoTabla),         c:''},
-                {l:'(-) Retenciones',        v:'-'+fmt(datos.retenciones), c:'#27500A'},
+                {l:'Ingresos brutos',        v:fmt(c.ingresos),       c:''},
+                {l:'(-) Rentas exentas 25%', v:'-'+fmt(c.renta_exenta), c:'#A32D2D'},
+                {l:'(-) Deducciones',        v:'-'+fmt(c.deducciones),  c:'#A32D2D'},
+                {l:'= Renta liquida',        v:fmt(c.renta_liquida),    c:'#0C447C'},
+                {l:'Renta en UVT',           v:Math.round(c.renta_en_uvt) + ' UVT', c:'#6b7280'},
+                {l:'Impuesto segun tabla DIAN', v:fmt(c.impuesto_tabla), c:''},
+                {l:'(-) Retenciones',        v:'-'+fmt(c.retenciones),  c:'#27500A'},
               ].map((r,i) => (
                 <tr key={i}>
                   <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6', color:'#6b7280'}}>{r.l}</td>
@@ -669,24 +705,28 @@ function Simulacion({ go, usuario }) {
           </table>
           <div style={{background:'#185FA5', borderRadius:8, padding:'10px 12px', display:'flex', justifyContent:'space-between', marginTop:10}}>
             <span style={{color:'rgba(255,255,255,0.8)', fontSize:12}}>Impuesto neto estimado</span>
-            <span style={{color:'#fff', fontSize:15, fontWeight:500}}>{fmt(impuestoNeto)}</span>
+            <span style={{color:'#fff', fontSize:15, fontWeight:500}}>{fmt(c.impuesto_neto)}</span>
           </div>
           <button onClick={() => go('rep')} style={{width:'100%', marginTop:10, padding:'8px 14px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#185FA5', color:'#fff', border:'none'}}>Generar reporte →</button>
         </Card>
         <div>
-          <Alert type="info" ico="💡" text="Si registras mas deducciones podrias reducir tu impuesto estimado." />
-          <Card title="Escenarios" ico="📊">
+          <Card title="Rangos tabla DIAN 2025" ico="📋" style={{marginBottom:10}}>
             {[
-              {tag:'Optimista',   val:fmt(impuestoNeto * 0.9), c:'#27500A', bg:'#EAF3DE'},
-              {tag:'Base',        val:fmt(impuestoNeto),        c:'#0C447C', bg:'#E6F1FB'},
-              {tag:'Conservador', val:fmt(impuestoNeto * 1.1),  c:'#633806', bg:'#FAEEDA'},
+              {r:'0 - 1.090 UVT',       t:'0%',   bg:'#EAF3DE', c:'#27500A'},
+              {r:'1.090 - 1.700 UVT',   t:'19%',  bg:'#E6F1FB', c:'#0C447C'},
+              {r:'1.700 - 4.100 UVT',   t:'28%',  bg:'#FAEEDA', c:'#633806'},
+              {r:'4.100 - 8.670 UVT',   t:'33%',  bg:'#FAEEDA', c:'#633806'},
+              {r:'8.670 - 18.970 UVT',  t:'35%',  bg:'#FCEBEB', c:'#A32D2D'},
+              {r:'18.970 - 31.000 UVT', t:'37%',  bg:'#FCEBEB', c:'#A32D2D'},
+              {r:'31.000+ UVT',         t:'39%',  bg:'#FCEBEB', c:'#A32D2D'},
             ].map((e,i) => (
-              <div key={i} style={{background:e.bg, borderRadius:8, padding:10, textAlign:'center', marginBottom:8}}>
-                <div style={{fontSize:10, fontWeight:500, color:e.c, marginBottom:3}}>{e.tag}</div>
-                <div style={{fontSize:14, fontWeight:500, color:e.c}}>{e.val}</div>
+              <div key={i} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 8px', borderRadius:4, marginBottom:3, background: Math.round(c.renta_en_uvt) >= parseInt(e.r) ? e.bg : '#f9fafb'}}>
+                <span style={{fontSize:10, color:'#6b7280'}}>{e.r}</span>
+                <span style={{fontSize:11, fontWeight:500, color:e.c}}>{e.t}</span>
               </div>
             ))}
           </Card>
+          <Alert type="info" ico="💡" text="Si registras mas deducciones podrias reducir tu impuesto estimado." />
         </div>
       </div>
     </div>
