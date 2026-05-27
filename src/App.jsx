@@ -406,30 +406,35 @@ function Registro({ usuario }) {
   const [deducciones, setDeducciones] = useState([])
   const [guardado, setGuardado] = useState(false)
   const [cargando, setCargando] = useState(true)
+  const [retenciones, setRetenciones] = useState([])
+  const totalRetenciones = retenciones.reduce((a, b) => a + b.v, 0)
 
-  useEffect(() => {
-    api.get('/tributario/' + usuario.id).then(res => {
-      const d = res.data
-      if (d.ingresos > 0) {
-        setIngresos([
-          {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
-          {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
-        ])
-      } else {
-        setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
-      }
-      if (d.deducciones > 0) {
-        setDeducciones([
-          {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
-          {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
-          {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
-        ])
-      } else {
-        setDeducciones([{d:'', f:'', v:0}])
-      }
-      setCargando(false)
-    }).catch(err => { console.error(err); setCargando(false) })
-  }, [])
+useEffect(() => {
+  api.get('/tributario/' + usuario.id).then(res => {
+    const d = res.data
+    if (d.ingresos > 0) {
+      setIngresos([
+        {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
+        {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
+      ])
+    } else {
+      setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
+    }
+    if (d.deducciones > 0) {
+      setDeducciones([
+        {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
+        {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
+        {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
+      ])
+    } else {
+      setDeducciones([{d:'', f:'', v:0}])
+    }
+    setRetenciones([
+      {d:'Retencion en la fuente', f:'', v: d.retenciones || 0}
+    ])
+    setCargando(false)
+  }).catch(err => { console.error(err); setCargando(false) })
+}, [])
 
   const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
   const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
@@ -442,19 +447,19 @@ function Registro({ usuario }) {
   const eliminarDeduccion = (i) => setDeducciones(deducciones.filter((_,idx) => idx !== i))
 
   const guardar = async () => {
-    try {
-      await api.put('/tributario/' + usuario.id, {
-        ingresos: totalIngresos,
-        deducciones: totalDeducciones,
-        retenciones,
-        impuesto_estimado: impuesto
-      })
-      setGuardado(true)
-      setTimeout(() => setGuardado(false), 3000)
-    } catch (err) {
-      console.error(err)
-    }
+  try {
+    await api.put('/tributario/' + usuario.id, {
+      ingresos: totalIngresos,
+      deducciones: totalDeducciones,
+      retenciones: totalRetenciones,
+      impuesto_estimado: impuesto
+    })
+    setGuardado(true)
+    setTimeout(() => setGuardado(false), 3000)
+  } catch (err) {
+    console.error(err)
   }
+
 
   if (cargando) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando datos...</div>
 
@@ -528,6 +533,47 @@ function Registro({ usuario }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
           <button onClick={agregarDeduccion} style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#EAF3DE', color:'#27500A', border:'0.5px solid #C0DD97'}}>+ Agregar deduccion</button>
           <div style={{fontSize:12, fontWeight:500, color:'#A32D2D'}}>Total: ${Math.round(totalDeducciones).toLocaleString()}</div>
+        </div>
+      </Card>
+
+      <Card title="Retenciones" ico="🧾" style={{marginBottom:12}}>
+        <div style={{fontSize:12, color:'#6b7280', marginBottom:10}}>
+          Registra las retenciones en la fuente que te practicaron durante 2025
+        </div>
+        <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
+          <thead>
+            <tr>{['Descripcion','Mes','Valor',''].map(h => <th key={h} style={{fontSize:10, fontWeight:500, color:'#9ca3af', textTransform:'uppercase', padding:'6px 10px', textAlign:'left', borderBottom:'0.5px solid #e5e7eb'}}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {retenciones.map((r,i) => (
+              <tr key={i}>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.d} onChange={e => { const nueva = [...retenciones]; nueva[i].d = e.target.value; setRetenciones(nueva) }}
+                    style={{width:'100%', padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input value={r.f} onChange={e => { const nueva = [...retenciones]; nueva[i].f = e.target.value; setRetenciones(nueva) }}
+                    style={{width:80, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <input type="number" value={Math.round(r.v)} onChange={e => { const nueva = [...retenciones]; nueva[i].v = Number(e.target.value); setRetenciones(nueva) }}
+                    style={{width:140, padding:'4px 8px', borderRadius:4, border:'0.5px solid #e5e7eb', fontSize:12, outline:'none'}} />
+                </td>
+                <td style={{padding:'8px 10px', borderBottom:'0.5px solid #f3f4f6'}}>
+                  <span onClick={() => setRetenciones(retenciones.filter((_,idx) => idx !== i))} style={{cursor:'pointer', color:'#A32D2D', fontSize:14}}>🗑</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:8}}>
+          <button onClick={() => setRetenciones([...retenciones, {d:'Retencion en la fuente', f:'', v:0}])}
+            style={{padding:'6px 12px', borderRadius:6, fontSize:12, fontWeight:500, cursor:'pointer', background:'#FAEEDA', color:'#633806', border:'0.5px solid #FAC775'}}>
+            + Agregar retencion
+          </button>
+          <div style={{fontSize:12, fontWeight:500, color:'#633806'}}>
+            Total: ${Math.round(totalRetenciones).toLocaleString()}
+          </div>
         </div>
       </Card>
 
