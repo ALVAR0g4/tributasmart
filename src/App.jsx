@@ -400,46 +400,44 @@ function Diagnostico({ usuario }) {
     </div>
   )
 }
-
 function Registro({ usuario }) {
   const [ingresos, setIngresos] = useState([])
   const [deducciones, setDeducciones] = useState([])
+  const [retenciones, setRetenciones] = useState([])
   const [guardado, setGuardado] = useState(false)
   const [cargando, setCargando] = useState(true)
-  const [retenciones, setRetenciones] = useState([])
-  const totalRetenciones = retenciones.reduce((a, b) => a + b.v, 0)
-
-useEffect(() => {
-  api.get('/tributario/' + usuario.id).then(res => {
-    const d = res.data
-    if (d.ingresos > 0) {
-      setIngresos([
-        {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
-        {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
-      ])
-    } else {
-      setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
-    }
-    if (d.deducciones > 0) {
-      setDeducciones([
-        {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
-        {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
-        {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
-      ])
-    } else {
-      setDeducciones([{d:'', f:'', v:0}])
-    }
-    setRetenciones([
-      {d:'Retencion en la fuente', f:'', v: d.retenciones || 0}
-    ])
-    setCargando(false)
-  }).catch(err => { console.error(err); setCargando(false) })
-}, [])
 
   const totalIngresos = ingresos.reduce((a, b) => a + b.v, 0)
   const totalDeducciones = deducciones.reduce((a, b) => a + b.v, 0)
-  const retenciones = 3400000
-  const impuesto = Math.max(0, (totalIngresos - totalDeducciones * 0.25) * 0.19 - retenciones)
+  const totalRetenciones = retenciones.reduce((a, b) => a + b.v, 0)
+  const impuesto = Math.max(0, (totalIngresos - totalDeducciones * 0.25) * 0.19 - totalRetenciones)
+
+  useEffect(() => {
+    api.get('/tributario/' + usuario.id).then(res => {
+      const d = res.data
+      if (d.ingresos > 0) {
+        setIngresos([
+          {d:'Salario mensual',      f:'', v: d.ingresos * 0.9, s:'Verificado'},
+          {d:'Honorarios freelance', f:'', v: d.ingresos * 0.1, s:'Pendiente'},
+        ])
+      } else {
+        setIngresos([{d:'', f:'', v:0, s:'Pendiente'}])
+      }
+      if (d.deducciones > 0) {
+        setDeducciones([
+          {d:'Intereses hipotecarios', f:'', v: d.deducciones * 0.35},
+          {d:'Medicina prepagada',     f:'', v: d.deducciones * 0.30},
+          {d:'Dependientes',           f:'', v: d.deducciones * 0.35},
+        ])
+      } else {
+        setDeducciones([{d:'', f:'', v:0}])
+      }
+      setRetenciones([
+        {d:'Retencion en la fuente', f:'', v: d.retenciones || 0}
+      ])
+      setCargando(false)
+    }).catch(err => { console.error(err); setCargando(false) })
+  }, [])
 
   const agregarIngreso = () => setIngresos([...ingresos, {d:'', f:'2025', v:0, s:'Pendiente'}])
   const agregarDeduccion = () => setDeducciones([...deducciones, {d:'', f:'2025', v:0}])
@@ -447,19 +445,19 @@ useEffect(() => {
   const eliminarDeduccion = (i) => setDeducciones(deducciones.filter((_,idx) => idx !== i))
 
   const guardar = async () => {
-  try {
-    await api.put('/tributario/' + usuario.id, {
-      ingresos: totalIngresos,
-      deducciones: totalDeducciones,
-      retenciones: totalRetenciones,
-      impuesto_estimado: impuesto
-    })
-    setGuardado(true)
-    setTimeout(() => setGuardado(false), 3000)
-  } catch (err) {
-    console.error(err)
+    try {
+      await api.put('/tributario/' + usuario.id, {
+        ingresos: totalIngresos,
+        deducciones: totalDeducciones,
+        retenciones: totalRetenciones,
+        impuesto_estimado: impuesto
+      })
+      setGuardado(true)
+      setTimeout(() => setGuardado(false), 3000)
+    } catch (err) {
+      console.error(err)
+    }
   }
-
 
   if (cargando) return <div style={{padding:20, fontSize:12, color:'#6b7280'}}>Cargando datos...</div>
 
@@ -467,6 +465,7 @@ useEffect(() => {
     <div>
       <PageHeader bc="Registro datos" title="Registro de datos" sub="Ingresa tus ingresos, deducciones y retenciones para el año gravable 2025" />
       <Alert type="info" ico="💡" text="Registra todos tus ingresos del año gravable 2025 para un calculo preciso." />
+
       <Card title="Ingresos" ico="💰" style={{marginBottom:12}}>
         <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
           <thead>
@@ -945,5 +944,4 @@ function Perfil({ go, usuario }) {
       </div>
     </div>
   )
-} 
 } 
